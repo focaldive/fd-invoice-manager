@@ -40,3 +40,6 @@ next-env.d.ts
 .env.local
 .env.development.local
 .env.test.local
+
+.claude
+settings.local.json
