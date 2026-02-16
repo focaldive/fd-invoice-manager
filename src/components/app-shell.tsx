@@ -1,48 +1,54 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Search, Menu, X } from "lucide-react"
-import { Input } from "@/components/ui/input"
+import { Menu, X, LogOut } from "lucide-react"
 import { useState } from "react"
 import { FocalDiveLogo } from "@/components/logo"
+import { useNavigationGuard } from "@/lib/navigation-guard"
+import { AuthGuard } from "@/components/auth-guard"
+import { logout } from "@/lib/auth"
 
 const navItems = [
   { href: "/", label: "Dashboard" },
-  { href: "/clients", label: "Clients" },
   { href: "/invoices", label: "Invoices" },
+  { href: "/clients", label: "Clients" },
   { href: "/settings", label: "Settings" },
 ]
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { tryNavigate } = useNavigationGuard()
   const [mobileOpen, setMobileOpen] = useState(false)
 
+  function handleNavClick(e: React.MouseEvent, href: string) {
+    // If a guard is registered and it blocks, prevent default Link navigation
+    if (tryNavigate(href)) {
+      e.preventDefault()
+    }
+  }
+
+  function handleLogout() {
+    logout()
+    router.replace("/login")
+  }
+
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-background">
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="mx-auto max-w-[1400px] flex h-16 items-center justify-between px-6">
           {/* Left: Logo */}
-          <Link href="/" className="flex items-center gap-3 shrink-0">
+          <Link href="/" onClick={(e) => handleNavClick(e, "/")} className="flex items-center gap-3 shrink-0">
             <FocalDiveLogo size={32} />
             <div className="flex flex-col">
-              <span className="text-[15px] font-bold tracking-tight leading-none">FocalDive</span>
+              <span className="text-[15px] font-semibold tracking-tight leading-none">FocalDive</span>
               <span className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase mt-0.5">Invoice Manager</span>
             </div>
           </Link>
-
-          {/* Center: Search (hidden on mobile) */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Search"
-                className="pl-9 h-9 text-sm bg-secondary border-border rounded-full"
-              />
-            </div>
-          </div>
 
           {/* Right: Nav links (desktop) */}
           <nav className="hidden md:flex items-center gap-1">
@@ -55,6 +61,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={(e) => handleNavClick(e, item.href)}
                   className={cn(
                     "px-4 py-2 text-sm font-medium rounded-full transition-colors",
                     isActive
@@ -66,6 +73,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               )
             })}
+            <button
+              onClick={handleLogout}
+              className="ml-2 p-2 text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </nav>
 
           {/* Mobile menu button */}
@@ -89,7 +103,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setMobileOpen(false)}
+                  onClick={(e) => { handleNavClick(e, item.href); setMobileOpen(false) }}
                   className={cn(
                     "block px-4 py-2.5 text-sm font-medium rounded-lg transition-colors",
                     isActive
@@ -101,6 +115,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </Link>
               )
             })}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-medium rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
           </div>
         )}
       </header>
@@ -109,17 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="mx-auto max-w-[1400px] px-6 py-10">
         {children}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border mt-20">
-        <div className="mx-auto max-w-[1400px] px-6 py-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <p className="text-sm font-semibold">FocalDive</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Invoice Manager for FocalDive (Pvt) Ltd</p>
-          </div>
-          <p className="text-xs text-muted-foreground">&copy;{new Date().getFullYear()}</p>
-        </div>
-      </footer>
     </div>
+    </AuthGuard>
   )
 }
