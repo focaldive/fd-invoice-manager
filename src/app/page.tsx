@@ -139,7 +139,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Dashboard</h1>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link href="/invoices/new">
               <Button size="sm" className="h-9 rounded-full">
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New Invoice

@@ -136,7 +136,7 @@ export default function InvoiceDetailPage() {
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-semibold tracking-tight font-mono">{invoice.invoice_number}</h1>
+                <h1 className="text-xl sm:text-3xl font-semibold tracking-tight font-mono">{invoice.invoice_number}</h1>
                 <Badge
                   className={cn(
                     "text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0",
@@ -224,6 +224,7 @@ export default function InvoiceDetailPage() {
               <div className="px-6 py-4 border-b border-border">
                 <h3 className="text-sm font-semibold">Line Items</h3>
               </div>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b border-border">
@@ -244,6 +245,7 @@ export default function InvoiceDetailPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
 
             {/* Payments */}
@@ -252,6 +254,7 @@ export default function InvoiceDetailPage() {
                 <div className="px-6 py-4 border-b border-border">
                   <h3 className="text-sm font-semibold">Payment History</h3>
                 </div>
+                <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-b border-border">
@@ -272,6 +275,7 @@ export default function InvoiceDetailPage() {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
               </div>
             )}
 

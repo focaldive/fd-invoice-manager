@@ -47,7 +47,7 @@ export default function ClientDetailPage() {
             <Button variant="ghost" size="icon" className="h-9 w-9"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{client.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{client.name}</h1>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
               {client.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{client.email}</span>}
               {client.phone && <span className="flex items-center gap-1 font-mono"><Phone className="h-3 w-3" />{client.phone}</span>}

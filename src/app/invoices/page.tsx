@@ -156,13 +156,13 @@ export default function InvoicesPage() {
 
         {/* Tabs + View Toggle */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-0 border border-border rounded-full p-1">
+          <div className="flex items-center gap-0 border border-border rounded-full p-1 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setStatusTab(tab.key)}
                 className={cn(
-                  "px-5 py-1.5 text-sm font-medium rounded-full transition-colors",
+                  "px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap sm:px-5 sm:text-sm",
                   statusTab === tab.key
                     ? "bg-foreground text-background"
                     : "text-muted-foreground hover:text-foreground"

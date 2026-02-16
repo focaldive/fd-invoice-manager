@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
-        <div className="mx-auto max-w-[1400px] flex h-16 items-center justify-between px-6">
+        <div className="mx-auto max-w-[1400px] flex h-16 items-center justify-between px-4 sm:px-6">
           {/* Left: Logo */}
           <Link href="/" onClick={(e) => handleNavClick(e, "/")} className="flex items-center gap-3 shrink-0">
             <FocalDiveLogo size={32} />
@@ -93,7 +93,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div className="md:hidden border-t border-border px-6 py-4 space-y-1 bg-background">
+          <div className="md:hidden border-t border-border px-4 sm:px-6 py-4 space-y-1 bg-background">
             {navItems.map((item) => {
               const isActive =
                 item.href === "/"
@@ -127,7 +127,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main content */}
-      <main className="mx-auto max-w-[1400px] px-6 py-10">
+      <main className="mx-auto max-w-[1400px] px-4 py-8 sm:px-6 sm:py-10">
         {children}
       </main>
     </div>
