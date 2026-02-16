@@ -1,9 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-import { Client, InvoiceItem, Settings, CATEGORIES, getClientAbbreviation, buildInvoiceNumber } from "@/lib/types"
+import { useNavigationGuard } from "@/lib/navigation-guard"
+import { Client, InvoiceItem, Settings, CATEGORIES, CURRENCIES, getClientAbbreviation, buildInvoiceNumber } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,13 +13,86 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DatePicker } from "@/components/ui/date-picker"
-import { Plus, Trash2, ArrowLeft, Send, Save } from "lucide-react"
+import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const CATEGORY_SUGGESTIONS: Record<string, string[]> = {
+  system_maintenance: [
+    "Monthly system maintenance",
+    "Bug fixes & patches",
+    "Performance optimization",
+    "Security updates & monitoring",
+    "Database maintenance",
+    "Server maintenance & updates",
+    "Backup & recovery service",
+  ],
+  project_quotation: [
+    "UI/UX design",
+    "Frontend development",
+    "Backend development",
+    "Full-stack development",
+    "Project planning & consultation",
+    "Wireframing & prototyping",
+    "API integration",
+    "Quality assurance & testing",
+  ],
+  milestone_payment: [
+    "Project milestone - Phase 1",
+    "Project milestone - Phase 2",
+    "Project milestone - Phase 3",
+    "Design milestone completion",
+    "Development milestone completion",
+    "Final delivery & handover",
+  ],
+  hosting: [
+    "Web hosting - Monthly",
+    "Web hosting - Annual",
+    "Cloud server hosting",
+    "SSL certificate renewal",
+    "CDN service",
+    "Email hosting",
+    "Domain & hosting bundle",
+  ],
+  domain: [
+    "Domain registration",
+    "Domain renewal",
+    "Domain transfer",
+    "DNS management",
+    "Domain privacy protection",
+  ],
+  graphic_design: [
+    "Social media post design",
+    "Post editing & retouching",
+    "Brochure design",
+    "Flyer design",
+    "Branding & logo design",
+    "Brand identity package",
+    "Business card design",
+    "Banner & poster design",
+    "Packaging design",
+    "Catalogue design",
+  ],
+  other: [
+    "Custom development work",
+    "Training & documentation",
+    "Data migration",
+    "Third-party integration",
+    "Emergency support",
+  ],
+}
 
 interface Props {
   invoiceId?: string
@@ -26,15 +100,16 @@ interface Props {
 
 export function InvoiceForm({ invoiceId }: Props) {
   const router = useRouter()
+  const { registerGuard, unregisterGuard } = useNavigationGuard()
   const isEdit = !!invoiceId
 
   const [clients, setClients] = useState<Client[]>([])
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [clientId, setClientId] = useState("")
-  const [dateOfIssue, setDateOfIssue] = useState(new Date().toISOString().split("T")[0])
-  const [dateDue, setDateDue] = useState(new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0])
+  const [dateOfIssue, setDateOfIssue] = useState(toLocalDateString(new Date()))
+  const [dateDue, setDateDue] = useState(toLocalDateString(new Date(Date.now() + 14 * 86400000)))
   const [category, setCategory] = useState("other")
-  const [currency, setCurrency] = useState<"LKR" | "USD">("LKR")
+  const [currency, setCurrency] = useState("LKR")
   const [taxPercentage, setTaxPercentage] = useState(0)
   const [discountPercentage, setDiscountPercentage] = useState(0)
   const [notes, setNotes] = useState("")
@@ -44,6 +119,86 @@ export function InvoiceForm({ invoiceId }: Props) {
   const [saving, setSaving] = useState(false)
   const [newClientDialog, setNewClientDialog] = useState(false)
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "", country: "" })
+  const [unsavedDialog, setUnsavedDialog] = useState(false)
+  const pendingNavRef = useRef<string | null>(null)
+  const savedRef = useRef(false)
+
+  const isDirty = useCallback(() => {
+    if (savedRef.current) return false
+    if (clientId) return true
+    if (items.some((i) => i.description.trim() || i.unit_price > 0)) return true
+    return false
+  }, [clientId, items])
+
+  // Register navigation guard for AppShell header links
+  useEffect(() => {
+    registerGuard((href: string) => {
+      if (isDirty()) {
+        pendingNavRef.current = href
+        setUnsavedDialog(true)
+        return true // blocked
+      }
+      return false // allow
+    })
+    return () => unregisterGuard()
+  }, [isDirty, registerGuard, unregisterGuard])
+
+  // Browser tab close / refresh warning
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isDirty()) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener("beforeunload", handler)
+    return () => window.removeEventListener("beforeunload", handler)
+  }, [isDirty])
+
+  // Browser back/forward button interception
+  useEffect(() => {
+    // Push a dummy state so we can detect back button
+    window.history.pushState({ invoiceForm: true }, "")
+
+    const handlePopState = () => {
+      if (isDirty()) {
+        // Re-push state to prevent actual navigation
+        window.history.pushState({ invoiceForm: true }, "")
+        pendingNavRef.current = "/invoices"
+        setUnsavedDialog(true)
+      }
+      // If not dirty, allow default browser behavior
+    }
+
+    window.addEventListener("popstate", handlePopState)
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [isDirty])
+
+  function handleNavigation(href: string) {
+    if (isDirty()) {
+      pendingNavRef.current = href
+      setUnsavedDialog(true)
+    } else {
+      router.push(href)
+    }
+  }
+
+  function handleDiscardAndLeave() {
+    setUnsavedDialog(false)
+    savedRef.current = true
+    const dest = pendingNavRef.current || "/invoices"
+    pendingNavRef.current = null
+    router.push(dest)
+  }
+
+  async function handleSaveAsDraftAndLeave() {
+    if (!clientId) {
+      toast.error("Please select a client before saving as draft")
+      return
+    }
+    setUnsavedDialog(false)
+    savedRef.current = true
+    await handleSave("draft")
+  }
 
   useEffect(() => {
     fetchClients()
@@ -58,13 +213,13 @@ export function InvoiceForm({ invoiceId }: Props) {
     const { data } = await supabase.from("settings").select("*").limit(1).single()
     if (data) {
       const s = data as Settings
-      setCurrency(s.default_currency as "LKR" | "USD")
+      setCurrency(s.default_currency)
       setTaxPercentage(Number(s.default_tax_percentage))
       setNotes(s.default_notes || "")
       // Set due date based on payment terms
       const due = new Date()
       due.setDate(due.getDate() + (s.default_payment_terms || 14))
-      setDateDue(due.toISOString().split("T")[0])
+      setDateDue(toLocalDateString(due))
     }
   }
 
@@ -134,7 +289,7 @@ export function InvoiceForm({ invoiceId }: Props) {
 
   function updateItem(index: number, field: keyof InvoiceItem, value: string | number) {
     const newItems = [...items]
-    ;(newItems[index] as any)[field] = value
+      ; (newItems[index] as any)[field] = value
     if (field === "quantity" || field === "unit_price") {
       newItems[index].amount = Number(newItems[index].quantity) * Number(newItems[index].unit_price)
     }
@@ -143,6 +298,15 @@ export function InvoiceForm({ invoiceId }: Props) {
 
   function addItem() {
     setItems([...items, { description: "", quantity: 1, unit_price: 0, amount: 0, sort_order: items.length }])
+  }
+
+  function applySuggestion(description: string) {
+    const emptyIdx = items.findIndex((i) => !i.description.trim())
+    if (emptyIdx !== -1) {
+      updateItem(emptyIdx, "description", description)
+    } else {
+      setItems([...items, { description, quantity: 1, unit_price: 0, amount: 0, sort_order: items.length }])
+    }
   }
 
   function removeItem(index: number) {
@@ -157,6 +321,7 @@ export function InvoiceForm({ invoiceId }: Props) {
 
   async function handleSave(status: "draft" | "sent") {
     if (!clientId) { toast.error("Please select a client"); return }
+    if (!invoiceNumber) { toast.error("Invoice number not generated yet. Please wait a moment."); return }
     if (items.some((i) => !i.description.trim())) { toast.error("All items need a description"); return }
 
     setSaving(true)
@@ -174,24 +339,33 @@ export function InvoiceForm({ invoiceId }: Props) {
       discount_amount: discountAmount,
       total,
       currency,
-      notes,
+      notes: notes || null,
       category,
-      updated_at: new Date().toISOString(),
     }
 
     let savedId = invoiceId
 
     if (isEdit) {
       const { error } = await supabase.from("invoices").update(invoiceData).eq("id", invoiceId)
-      if (error) { toast.error("Failed to update invoice"); setSaving(false); return }
+      if (error) {
+        console.error("Invoice update error:", error)
+        toast.error(`Failed to update invoice: ${error.message}`)
+        setSaving(false)
+        return
+      }
       await supabase.from("invoice_items").delete().eq("invoice_id", invoiceId)
     } else {
       const { data, error } = await supabase.from("invoices").insert(invoiceData).select().single()
-      if (error || !data) { toast.error("Failed to create invoice"); setSaving(false); return }
+      if (error || !data) {
+        console.error("Invoice create error:", error)
+        toast.error(`Failed to create invoice: ${error?.message || "Unknown error"}`)
+        setSaving(false)
+        return
+      }
       savedId = data.id
     }
 
-    await supabase.from("invoice_items").insert(
+    const { error: itemsError } = await supabase.from("invoice_items").insert(
       items.map((item, idx) => ({
         invoice_id: savedId,
         description: item.description,
@@ -201,8 +375,12 @@ export function InvoiceForm({ invoiceId }: Props) {
         sort_order: idx,
       }))
     )
+    if (itemsError) {
+      console.error("Invoice items insert error:", itemsError)
+    }
 
     toast.success(isEdit ? "Invoice updated" : "Invoice created")
+    savedRef.current = true
     router.push(`/invoices/${savedId}`)
     setSaving(false)
   }
@@ -218,19 +396,23 @@ export function InvoiceForm({ invoiceId }: Props) {
     setClientId(data.id)
   }
 
-  const formatAmount = (amt: number) =>
-    currency === "USD"
-      ? `$${amt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-      : `LKR ${amt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  const formatAmount = (amt: number) => {
+    const formatted = amt.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    const curr = CURRENCIES.find(c => c.value === currency)
+    if (!curr) return `${currency} ${formatted}`
+    const sym = curr.symbol
+    if (['$', '£', '€', '₹'].includes(sym) || sym.endsWith('$')) return `${sym}${formatted}`
+    return `${sym} ${formatted}`
+  }
 
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">
-        <Link href="/invoices">
-          <Button variant="ghost" size="icon" className="h-9 w-9"><ArrowLeft className="h-4 w-4" /></Button>
-        </Link>
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => handleNavigation("/invoices")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">{isEdit ? "Edit Invoice" : "New Invoice"}</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{isEdit ? "Edit Invoice" : "New Invoice"}</h1>
           {invoiceNumber && <p className="text-sm font-mono text-muted-foreground mt-0.5">{invoiceNumber}</p>}
         </div>
       </div>
@@ -241,43 +423,6 @@ export function InvoiceForm({ invoiceId }: Props) {
           {/* Invoice details */}
           <div className="rounded-xl border border-border bg-card p-6 space-y-4">
             <h3 className="text-sm font-semibold mb-2">Invoice Details</h3>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Invoice Number</Label>
-                  <Input value={invoiceNumber} readOnly placeholder={isEdit ? "" : "Select a client first"} className="mt-1.5 bg-secondary font-mono text-sm" />
-              </div>
-              <div>
-                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Date of Issue</Label>
-                  <div className="mt-1.5">
-                    <DatePicker
-                      value={dateOfIssue ? new Date(dateOfIssue + "T00:00:00") : undefined}
-                      onChange={(date) => date && setDateOfIssue(date.toISOString().split("T")[0])}
-                      placeholder="Select issue date"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Due Date</Label>
-                  <div className="mt-1.5">
-                    <DatePicker
-                      value={dateDue ? new Date(dateDue + "T00:00:00") : undefined}
-                      onChange={(date) => date && setDateDue(date.toISOString().split("T")[0])}
-                      placeholder="Select due date"
-                    />
-                  </div>
-                </div>
-            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Client</Label>
@@ -295,25 +440,81 @@ export function InvoiceForm({ invoiceId }: Props) {
               </div>
               <div>
                 <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Currency</Label>
-                <Select value={currency} onValueChange={(v) => setCurrency(v as "LKR" | "USD")}>
+                <Select value={currency} onValueChange={setCurrency}>
                   <SelectTrigger className="mt-1.5 font-mono"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="LKR">LKR - Sri Lankan Rupee</SelectItem>
-                    <SelectItem value="USD">USD - US Dollar</SelectItem>
+                    {CURRENCIES.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Invoice Number</Label>
+                <Input value={invoiceNumber} readOnly placeholder={isEdit ? "" : "Select a client first"} className="mt-1.5 bg-secondary font-mono text-sm" />
+              </div>
+              <div>
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Category</Label>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Date of Issue</Label>
+                <div className="mt-1.5">
+                  <DatePicker
+                    value={dateOfIssue ? new Date(dateOfIssue + "T00:00:00") : undefined}
+                    onChange={(date) => date && setDateOfIssue(toLocalDateString(date))}
+                    placeholder="Select issue date"
+                    fromDate={new Date()}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Due Date</Label>
+                <div className="mt-1.5">
+                  <DatePicker
+                    value={dateDue ? new Date(dateDue + "T00:00:00") : undefined}
+                    onChange={(date) => date && setDateDue(toLocalDateString(date))}
+                    placeholder="Select due date"
+                    fromDate={dateOfIssue ? new Date(dateOfIssue + "T00:00:00") : new Date()}
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {/* Line Items */}
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Line Items</h3>
-              <Button variant="outline" size="sm" onClick={addItem} className="h-8 text-xs rounded-full">
+              <Button variant="outline" size="sm" onClick={addItem} className="h-8 text-xs rounded-full cursor-pointer">
                 <Plus className="mr-1 h-3.5 w-3.5" /> Add Item
               </Button>
             </div>
+            {CATEGORY_SUGGESTIONS[category] && (
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground self-center mr-1">Suggestions</span>
+                {CATEGORY_SUGGESTIONS[category].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => applySuggestion(suggestion)}
+                    className="px-2.5 py-1 text-xs rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/10 transition-colors cursor-pointer"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="space-y-3">
               <div className="hidden sm:grid sm:grid-cols-12 gap-2 text-[10px] font-mono font-medium uppercase tracking-wider text-muted-foreground px-1">
                 <div className="col-span-5">Description</div>
@@ -324,17 +525,23 @@ export function InvoiceForm({ invoiceId }: Props) {
               </div>
 
               {items.map((item, idx) => (
-                <div key={idx} className="grid gap-2 sm:grid-cols-12 items-start">
+                <div key={idx} className="grid gap-2 sm:grid-cols-12 items-start rounded-lg border border-border p-3 sm:border-0 sm:p-0">
                   <div className="sm:col-span-5">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground sm:hidden">Description</label>
                     <Input placeholder="Description" value={item.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className="text-sm" />
                   </div>
-                  <div className="sm:col-span-2">
-                    <Input type="number" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} min={0} className="font-mono text-sm" />
+                  <div className="grid grid-cols-2 gap-2 sm:contents">
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground sm:hidden">Qty</label>
+                      <Input type="number" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(idx, "quantity", parseFloat(e.target.value) || 0)} min={0} className="font-mono text-sm" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground sm:hidden">Unit Price</label>
+                      <Input type="number" placeholder="Price" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", parseFloat(e.target.value) || 0)} min={0} className="font-mono text-sm" />
+                    </div>
                   </div>
-                  <div className="sm:col-span-2">
-                    <Input type="number" placeholder="Price" value={item.unit_price} onChange={(e) => updateItem(idx, "unit_price", parseFloat(e.target.value) || 0)} min={0} className="font-mono text-sm" />
-                  </div>
-                  <div className="sm:col-span-2 flex items-center justify-end h-9 px-3 text-sm font-mono font-semibold">
+                  <div className="sm:col-span-2 flex items-center justify-between sm:justify-end h-9 px-3 text-sm font-mono font-semibold">
+                    <span className="text-[10px] font-normal uppercase tracking-wider text-muted-foreground sm:hidden">Amount</span>
                     {formatAmount(Number(item.quantity) * Number(item.unit_price))}
                   </div>
                   <div className="sm:col-span-1 flex justify-end">
@@ -388,21 +595,21 @@ export function InvoiceForm({ invoiceId }: Props) {
             </div>
             <div className="border-t border-border pt-4">
               <div className="flex justify-between items-baseline">
-                <span className="text-sm font-bold">Total</span>
-                <span className="text-xl font-bold font-mono">{formatAmount(total)}</span>
+                <span className="text-sm font-semibold">Total</span>
+                <span className="text-xl font-semibold font-mono">{formatAmount(total)}</span>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <Button className="w-full h-10 rounded-full" onClick={() => handleSave("sent")} disabled={saving}>
-              <Send className="mr-1.5 h-3.5 w-3.5" />
-              {saving ? "Saving..." : "Save & Send"}
-            </Button>
-            <Button variant="outline" className="w-full h-10 rounded-full" onClick={() => handleSave("draft")} disabled={saving}>
-              <Save className="mr-1.5 h-3.5 w-3.5" />
-              Save as Draft
-            </Button>
+            <div className="space-y-2">
+              <Button className="w-full h-10 rounded-full" onClick={() => handleSave("sent")} disabled={saving}>
+                <Send className="mr-1.5 h-3.5 w-3.5" />
+                {saving ? "Saving..." : "Save & Send"}
+              </Button>
+              <Button variant="outline" className="w-full h-10 rounded-full" onClick={() => handleSave("draft")} disabled={saving}>
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+                Save as Draft
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -410,7 +617,7 @@ export function InvoiceForm({ invoiceId }: Props) {
       {/* New client dialog */}
       <Dialog open={newClientDialog} onOpenChange={setNewClientDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="text-lg font-bold">Add New Client</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-lg font-semibold">Add New Client</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
               <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Name *</Label>
@@ -433,6 +640,39 @@ export function InvoiceForm({ invoiceId }: Props) {
               <Input value={newClient.country} onChange={(e) => setNewClient({ ...newClient, country: e.target.value })} placeholder="Country" className="mt-1.5" />
             </div>
             <Button onClick={handleCreateClient} className="w-full">Create Client</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Unsaved changes dialog */}
+      <Dialog open={unsavedDialog} onOpenChange={setUnsavedDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
+                <AlertTriangle className="h-5 w-5 text-amber-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-semibold">Unsaved Changes</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground mt-0.5">
+                  You have unsaved changes that will be lost.
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 pt-4">
+            <Button variant={'outline'} onClick={handleSaveAsDraftAndLeave} disabled={!clientId} className="w-full rounded-full border border-primary text-primary hover:bg-primary/20">
+              <Save className="mr-1.5 h-3.5 w-3.5" /> Save as Draft
+            </Button>
+            {!clientId && (
+              <p className="text-[11px] text-muted-foreground text-center -mt-1">Select a client first to save as draft</p>
+            )}
+            <Button variant="outline" onClick={handleDiscardAndLeave} className="w-full rounded-full text-destructive hover:text-destructive">
+              Discard & Leave
+            </Button>
+            <Button variant="ghost" onClick={() => setUnsavedDialog(false)} className="w-full rounded-full">
+              Continue Editing
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

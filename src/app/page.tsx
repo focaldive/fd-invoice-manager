@@ -3,10 +3,11 @@
 import { AppShell } from "@/components/app-shell"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
-import { Invoice, formatCurrency, getStatusInfo, CATEGORIES } from "@/lib/types"
+import { Invoice, formatCurrency, getStatusInfo, CATEGORIES, CURRENCIES } from "@/lib/types"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, FileText, Clock, AlertTriangle, ArrowUpRight } from "lucide-react"
+import { TrendingUp, FileText, Clock, AlertTriangle, ArrowUpRight, Plus } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
@@ -35,7 +36,7 @@ export default function DashboardPage() {
     recentInvoices: [],
     monthlyRevenue: [],
   })
-  const [currency, setCurrency] = useState<"LKR" | "USD">("LKR")
+  const [currency, setCurrency] = useState("LKR")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
 
@@ -137,15 +138,21 @@ export default function DashboardPage() {
       <div className="space-y-10">
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <h1 className="text-5xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Dashboard</h1>
           <div className="flex gap-2">
-            <Select value={currency} onValueChange={(v) => setCurrency(v as "LKR" | "USD")}>
+            <Link href="/invoices/new">
+              <Button size="sm" className="h-9 rounded-full">
+                <Plus className="mr-1.5 h-3.5 w-3.5" /> New Invoice
+              </Button>
+            </Link>
+            <Select value={currency} onValueChange={setCurrency}>
               <SelectTrigger className="w-[100px] h-9 text-xs font-mono bg-secondary border-border rounded-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="LKR">LKR</SelectItem>
-                <SelectItem value="USD">USD</SelectItem>
+                {CURRENCIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.value}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -172,7 +179,7 @@ export default function DashboardPage() {
                   <stat.icon className={cn("h-4 w-4", stat.color)} />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-bold tracking-tight font-mono">{stat.value}</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight font-mono">{stat.value}</p>
               <p className="mt-1 text-xs text-muted-foreground">{stat.sub}</p>
             </div>
           ))}
@@ -201,10 +208,14 @@ export default function DashboardPage() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 10, fontFamily: "var(--font-jetbrains-mono)", fill: "var(--muted-foreground)" }}
-                    tickFormatter={(v) => currency === "USD" ? `$${(v/1000).toFixed(0)}k` : `${(v/1000).toFixed(0)}k`}
+                    tickFormatter={(v) => {
+                      const sym = CURRENCIES.find(c => c.value === currency)?.symbol || currency
+                      return `${sym}${(v / 1000).toFixed(0)}k`
+                    }}
                   />
                   <Tooltip
                     formatter={(value: number) => [formatCurrency(value, currency), "Revenue"]}
+                    cursor={{ fill: "var(--accent)" }}
                     contentStyle={{
                       background: "var(--popover)",
                       border: "1px solid var(--border)",
@@ -251,7 +262,7 @@ export default function DashboardPage() {
                       <div className="min-w-0">
                         <p className="text-sm font-mono font-medium truncate group-hover:text-primary transition-colors">{inv.invoice_number}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {(inv as any).client?.name || "No client"}
+                          {inv.client?.name || "No client"}
                         </p>
                       </div>
                       <div className="text-right ml-3 flex-shrink-0">
@@ -260,9 +271,9 @@ export default function DashboardPage() {
                           className={cn(
                             "text-[10px] font-medium px-2 py-0 rounded-full border-0",
                             inv.status === "paid" ? "bg-primary/20 text-primary" :
-                            inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
-                            ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
-                            "bg-red-500/20 text-red-400"
+                              inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
+                                ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
+                                  "bg-red-500/20 text-red-400"
                           )}
                         >
                           {statusInfo.label}

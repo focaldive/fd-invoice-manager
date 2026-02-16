@@ -136,14 +136,14 @@ export default function InvoiceDetailPage() {
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-3xl font-bold tracking-tight font-mono">{invoice.invoice_number}</h1>
+                <h1 className="text-3xl font-semibold tracking-tight font-mono">{invoice.invoice_number}</h1>
                 <Badge
                   className={cn(
                     "text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0",
                     invoice.status === "paid" ? "bg-primary/20 text-primary" :
-                    invoice.status === "draft" ? "bg-blue-500/20 text-blue-400" :
-                    ["sent", "overdue"].includes(invoice.status) ? "bg-amber-500/20 text-amber-400" :
-                    "bg-red-500/20 text-red-400"
+                      invoice.status === "draft" ? "bg-blue-500/20 text-blue-400" :
+                        ["sent", "overdue"].includes(invoice.status) ? "bg-amber-500/20 text-amber-400" :
+                          "bg-red-500/20 text-red-400"
                   )}
                 >
                   {getStatusInfo(invoice.status).label}
@@ -168,9 +168,7 @@ export default function InvoiceDetailPage() {
             )}
             {["sent", "overdue"].includes(invoice.status) && (
               <>
-                <Button variant="outline" size="sm" onClick={() => setPaymentDialog(true)} className="h-9 rounded-full">
-                  <CreditCard className="mr-1.5 h-3.5 w-3.5" /> Record Payment
-                </Button>
+
                 <Button size="sm" onClick={markAsPaid} className="h-9 rounded-full">
                   <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
                 </Button>
@@ -191,16 +189,18 @@ export default function InvoiceDetailPage() {
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
                   <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">From</p>
-                  <p className="text-sm font-semibold">FocalDive (Pvt) Ltd</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">Kurunegala, Sri Lanka</p>
-                  <p className="text-sm text-muted-foreground">devfocaldive@gmail.com</p>
+                  <p className="text-sm font-semibold">{settings?.company_name || "—"}</p>
+                  {settings?.company_address && <p className="text-sm text-muted-foreground mt-0.5">{settings.company_address}</p>}
+                  {settings?.company_email && <p className="text-sm text-muted-foreground">{settings.company_email}</p>}
+                  {settings?.company_phone && <p className="text-sm text-muted-foreground">{settings.company_phone}</p>}
                 </div>
                 <div>
                   <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground mb-2">Bill to</p>
-                  <p className="text-sm font-semibold">{(invoice as any).client?.name || "N/A"}</p>
-                  <p className="text-sm text-muted-foreground mt-0.5">{(invoice as any).client?.address}</p>
-                  <p className="text-sm text-muted-foreground">{(invoice as any).client?.country}</p>
-                  <p className="text-sm text-muted-foreground">{(invoice as any).client?.email}</p>
+                  <p className="text-sm font-semibold">{invoice.client?.name || "N/A"}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{invoice.client?.address}</p>
+                  <p className="text-sm text-muted-foreground">{invoice.client?.country}</p>
+                  {invoice.client?.email && <p className="text-sm text-muted-foreground">{invoice.client.email}</p>}
+                  {invoice.client?.phone && <p className="text-sm text-muted-foreground">{invoice.client.phone}</p>}
                 </div>
               </div>
               <div className="mt-6 grid gap-4 sm:grid-cols-3 border-t border-border pt-4">
@@ -304,7 +304,7 @@ export default function InvoiceDetailPage() {
                   <span className="font-mono">-{fmt(Number(invoice.discount_amount))}</span>
                 </div>
               )}
-              <div className="border-t border-border pt-3 flex justify-between font-bold">
+              <div className="border-t border-border pt-3 flex justify-between font-semibold">
                 <span>Total</span>
                 <span className="font-mono text-lg">{fmt(Number(invoice.total))}</span>
               </div>
@@ -314,7 +314,7 @@ export default function InvoiceDetailPage() {
                     <span>Paid</span>
                     <span className="font-mono">{fmt(totalPaid)}</span>
                   </div>
-                  <div className="border-t border-border pt-3 flex justify-between font-bold">
+                  <div className="border-t border-border pt-3 flex justify-between font-semibold">
                     <span>Amount Due</span>
                     <span className="font-mono text-lg">{fmt(amountDue > 0 ? amountDue : 0)}</span>
                   </div>
@@ -328,7 +328,7 @@ export default function InvoiceDetailPage() {
       {/* Record Payment Dialog */}
       <Dialog open={paymentDialog} onOpenChange={setPaymentDialog}>
         <DialogContent>
-          <DialogHeader><DialogTitle className="text-lg font-bold">Record Payment</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="text-lg font-semibold">Record Payment</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-2">
             <div>
               <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Amount *</Label>
@@ -342,14 +342,14 @@ export default function InvoiceDetailPage() {
               />
             </div>
             <div>
-                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment Date</Label>
-                <div className="mt-1.5">
-                  <DatePicker
-                    value={paymentForm.payment_date ? new Date(paymentForm.payment_date + "T00:00:00") : undefined}
-                    onChange={(date) => date && setPaymentForm({ ...paymentForm, payment_date: date.toISOString().split("T")[0] })}
-                    placeholder="Select payment date"
-                  />
-                </div>
+              <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment Date</Label>
+              <div className="mt-1.5">
+                <DatePicker
+                  value={paymentForm.payment_date ? new Date(paymentForm.payment_date + "T00:00:00") : undefined}
+                  onChange={(date) => date && setPaymentForm({ ...paymentForm, payment_date: date.toISOString().split("T")[0] })}
+                  placeholder="Select payment date"
+                />
+              </div>
             </div>
             <div>
               <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment Method</Label>

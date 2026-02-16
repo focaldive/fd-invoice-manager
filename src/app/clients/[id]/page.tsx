@@ -47,8 +47,8 @@ export default function ClientDetailPage() {
             <Button variant="ghost" size="icon" className="h-9 w-9"><ArrowLeft className="h-4 w-4" /></Button>
           </Link>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">{client.name}</h1>
-            <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+            <h1 className="text-3xl font-semibold tracking-tight">{client.name}</h1>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
               {client.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{client.email}</span>}
               {client.phone && <span className="flex items-center gap-1 font-mono"><Phone className="h-3 w-3" />{client.phone}</span>}
               {client.country && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{client.country}</span>}
@@ -59,21 +59,21 @@ export default function ClientDetailPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total Billed</p>
-            {lkrInvoices.length > 0 && <p className="text-lg font-bold font-mono mt-1">{formatCurrency(lkrInvoices.reduce((s,i)=>s+Number(i.total),0), 'LKR')}</p>}
-            {usdInvoices.length > 0 && <p className="text-lg font-bold font-mono mt-1">{formatCurrency(usdInvoices.reduce((s,i)=>s+Number(i.total),0), 'USD')}</p>}
-            {invoices.length === 0 && <p className="text-lg font-bold font-mono text-muted-foreground mt-1">-</p>}
+            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono mt-1">{formatCurrency(lkrInvoices.reduce((s, i) => s + Number(i.total), 0), 'LKR')}</p>}
+            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono mt-1">{formatCurrency(usdInvoices.reduce((s, i) => s + Number(i.total), 0), 'USD')}</p>}
+            {invoices.length === 0 && <p className="text-lg font-semibold font-mono text-muted-foreground mt-1">-</p>}
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total Paid</p>
-            {lkrInvoices.length > 0 && <p className="text-lg font-bold font-mono text-primary mt-1">{formatCurrency(lkrInvoices.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.total),0), 'LKR')}</p>}
-            {usdInvoices.length > 0 && <p className="text-lg font-bold font-mono text-primary mt-1">{formatCurrency(usdInvoices.filter(i=>i.status==='paid').reduce((s,i)=>s+Number(i.total),0), 'USD')}</p>}
-            {invoices.length === 0 && <p className="text-lg font-bold font-mono text-muted-foreground mt-1">-</p>}
+            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-primary mt-1">{formatCurrency(lkrInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.total), 0), 'LKR')}</p>}
+            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-primary mt-1">{formatCurrency(usdInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.total), 0), 'USD')}</p>}
+            {invoices.length === 0 && <p className="text-lg font-semibold font-mono text-muted-foreground mt-1">-</p>}
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Outstanding</p>
-            {lkrInvoices.length > 0 && <p className="text-lg font-bold font-mono text-amber-400 mt-1">{formatCurrency(lkrInvoices.filter(i=>['sent','overdue'].includes(i.status)).reduce((s,i)=>s+Number(i.total),0), 'LKR')}</p>}
-            {usdInvoices.length > 0 && <p className="text-lg font-bold font-mono text-amber-400 mt-1">{formatCurrency(usdInvoices.filter(i=>['sent','overdue'].includes(i.status)).reduce((s,i)=>s+Number(i.total),0), 'USD')}</p>}
-            {invoices.length === 0 && <p className="text-lg font-bold font-mono text-muted-foreground mt-1">-</p>}
+            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-amber-400 mt-1">{formatCurrency(lkrInvoices.filter(i => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + Number(i.total), 0), 'LKR')}</p>}
+            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-amber-400 mt-1">{formatCurrency(usdInvoices.filter(i => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + Number(i.total), 0), 'USD')}</p>}
+            {invoices.length === 0 && <p className="text-lg font-semibold font-mono text-muted-foreground mt-1">-</p>}
           </div>
         </div>
 
@@ -100,9 +100,9 @@ export default function ClientDetailPage() {
                           className={cn(
                             "text-[10px] font-medium px-2 py-0 rounded-full border-0",
                             inv.status === "paid" ? "bg-primary/20 text-primary" :
-                            inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
-                            ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
-                            "bg-red-500/20 text-red-400"
+                              inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
+                                ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
+                                  "bg-red-500/20 text-red-400"
                           )}
                         >
                           {statusInfo.label}

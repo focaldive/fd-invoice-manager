@@ -20,14 +20,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, MoreHorizontal, Eye, Download, Copy, XCircle, CheckCircle, Pencil, FileDown, LayoutGrid, List } from "lucide-react"
+import { Plus, MoreHorizontal, Eye, Download, Copy, XCircle, CheckCircle, Pencil, LayoutGrid, List } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { generateInvoicePDF } from "@/lib/pdf"
 import { cn } from "@/lib/utils"
 
-type StatusTab = "all" | "paid" | "unpaid" | "draft"
+type StatusTab = "all" | "paid" | "unpaid" | "draft" | "cancelled"
 
 export default function InvoicesPage() {
   const router = useRouter()
@@ -136,6 +136,7 @@ export default function InvoicesPage() {
     if (statusTab === "paid") return inv.status === "paid"
     if (statusTab === "unpaid") return ["sent", "overdue"].includes(inv.status)
     if (statusTab === "draft") return inv.status === "draft"
+    if (statusTab === "cancelled") return inv.status === "cancelled"
     return true
   })
 
@@ -144,13 +145,14 @@ export default function InvoicesPage() {
     { key: "paid", label: "Paid" },
     { key: "unpaid", label: "Not Paid" },
     { key: "draft", label: "Draft" },
+    { key: "cancelled", label: "Cancelled" },
   ]
 
   return (
     <AppShell>
       <div className="space-y-8">
         {/* Page Title */}
-        <h1 className="text-5xl font-bold tracking-tight">Invoices</h1>
+        <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Invoices</h1>
 
         {/* Tabs + View Toggle */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -223,41 +225,51 @@ export default function InvoicesPage() {
                 <Link
                   key={inv.id}
                   href={`/invoices/${inv.id}`}
-                  className="group block rounded-xl border border-border bg-card p-5 hover:border-primary/40 transition-all"
+                  className="group block rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:bg-primary/20 transition-all min-h-[280px]"
                 >
-                  <div className="flex items-center justify-between mb-8">
-                    <span className="text-sm font-mono font-semibold">{inv.invoice_number}</span>
-                    <Badge
-                      className={cn(
-                        "text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0",
-                        inv.status === "paid" ? "bg-primary/20 text-primary" :
-                        inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
-                        ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
-                        "bg-red-500/20 text-red-400"
-                      )}
-                    >
-                      {inv.status === "paid" ? "Paid" :
-                       inv.status === "draft" ? "Draft" :
-                       ["sent", "overdue"].includes(inv.status) ? "Not Paid" :
-                       "Cancelled"}
-                    </Badge>
+                  <div className="flex flex-col justify-between h-full">
+                    <div className="flex items-center justify-between mb-8">
+                      <span className="text-sm font-mono font-semibold">{inv.invoice_number}</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadPDF(inv) }}
+                          className="h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </button>
+                        <Badge
+                          className={cn(
+                            "text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0",
+                            inv.status === "paid" ? "bg-primary/20 text-primary" :
+                              inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
+                                ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
+                                  "bg-red-500/20 text-red-400"
+                          )}
+                        >
+                          {inv.status === "paid" ? "Paid" :
+                            inv.status === "draft" ? "Draft" :
+                              ["sent", "overdue"].includes(inv.status) ? "Not Paid" :
+                                "Cancelled"}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="space-y-1 mb-4">
+                        <p className="text-lg font-medium text-primary group-hover:underline">
+                          {inv.client?.name || "No client"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {getCategoryLabel(inv.category)}
+                        </p>
+                      </div>
+                      <p className="text-xl font-semibold font-mono tracking-tighter">
+                        {formatCurrency(Number(inv.total), inv.currency)}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Due {new Date(inv.date_due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                      </p>
+                    </div>
                   </div>
-
-                  <div className="space-y-1 mb-4">
-                    <p className="text-sm font-semibold text-primary group-hover:underline">
-                      {getCategoryLabel(inv.category)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {(inv as any).client?.name || "No client"}
-                    </p>
-                  </div>
-
-                  <p className="text-xl font-bold font-mono tracking-tight">
-                    {formatCurrency(Number(inv.total), inv.currency)}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Due {new Date(inv.date_due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-                  </p>
                 </Link>
               )
             })}
@@ -269,11 +281,11 @@ export default function InvoicesPage() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent border-b border-border">
                   <TableHead className="text-xs text-muted-foreground font-medium">Invoice ID</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Title</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Client</TableHead>
+                  <TableHead className="hidden sm:table-cell text-xs text-muted-foreground font-medium">Title</TableHead>
+                  <TableHead className="hidden md:table-cell text-xs text-muted-foreground font-medium">Client</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Issue Date</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium">Due Date</TableHead>
+                  <TableHead className="hidden lg:table-cell text-xs text-muted-foreground font-medium">Issue Date</TableHead>
+                  <TableHead className="hidden md:table-cell text-xs text-muted-foreground font-medium">Due Date</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium text-right">Total</TableHead>
                   <TableHead className="w-[50px]"></TableHead>
                 </TableRow>
@@ -282,28 +294,28 @@ export default function InvoicesPage() {
                 {filtered.map((inv) => (
                   <TableRow key={inv.id} className="group border-b border-border hover:bg-secondary/50">
                     <TableCell className="font-mono text-sm font-medium">{inv.invoice_number}</TableCell>
-                    <TableCell className="text-sm font-medium">{getCategoryLabel(inv.category)}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{(inv as any).client?.name || "-"}</TableCell>
+                    <TableCell className="hidden sm:table-cell text-sm font-medium">{getCategoryLabel(inv.category)}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{inv.client?.name || "-"}</TableCell>
                     <TableCell>
                       <Badge
                         className={cn(
                           "text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0",
                           inv.status === "paid" ? "bg-primary/20 text-primary" :
-                          inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
-                          ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
-                          "bg-red-500/20 text-red-400"
+                            inv.status === "draft" ? "bg-blue-500/20 text-blue-400" :
+                              ["sent", "overdue"].includes(inv.status) ? "bg-amber-500/20 text-amber-400" :
+                                "bg-red-500/20 text-red-400"
                         )}
                       >
                         {inv.status === "paid" ? "Paid" :
-                         inv.status === "draft" ? "Draft" :
-                         ["sent", "overdue"].includes(inv.status) ? "Not Paid" :
-                         "Cancelled"}
+                          inv.status === "draft" ? "Draft" :
+                            ["sent", "overdue"].includes(inv.status) ? "Not Paid" :
+                              "Cancelled"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
                       {new Date(inv.date_of_issue).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
                       {new Date(inv.date_due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm font-semibold">
@@ -312,7 +324,7 @@ export default function InvoicesPage() {
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>

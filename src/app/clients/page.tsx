@@ -95,7 +95,7 @@ export default function ClientsPage() {
     <AppShell>
       <div className="space-y-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <h1 className="text-5xl font-bold tracking-tight">Clients</h1>
+          <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Clients</h1>
           <Button size="sm" onClick={openCreate} className="h-9 rounded-full">
             <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Client
           </Button>
@@ -146,7 +146,7 @@ export default function ClientsPage() {
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground font-mono">{client.phone}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{client.country}</TableCell>
                     <TableCell>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(client)}>
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
@@ -165,7 +165,7 @@ export default function ClientsPage() {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="text-lg font-bold">{editing ? "Edit Client" : "Add Client"}</DialogTitle>
+              <DialogTitle className="text-lg font-semibold">{editing ? "Edit Client" : "Add Client"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>

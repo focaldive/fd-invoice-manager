@@ -8,7 +8,7 @@ export function FocalDiveLogo({ className = "", size = 36 }: { className?: strin
       className={className}
     >
       <path
-        fill="#212d34"
+        fill="#ffffff"
         d="M950.09,263.49,813.67,184.73V422l-69.09,39.91L521.27,590.81,335.42,698.1V934.86l34.23,19.82L539.92,1053H540L983.73,796.79V282.89ZM813.67,698.32l-69.09,39.91L521.27,867.16V787.44L744.58,658.51l69.09-39.91Z"
       />
       <polygon

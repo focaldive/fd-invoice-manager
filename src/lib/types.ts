@@ -21,7 +21,7 @@ export interface Invoice {
   discount_percentage: number
   discount_amount: number
   total: number
-  currency: 'LKR' | 'USD'
+  currency: string
   notes: string | null
   category: string
   created_at: string
@@ -58,6 +58,7 @@ export const CATEGORIES = [
   { value: 'milestone_payment', label: 'Milestone Payment' },
   { value: 'hosting', label: 'Hosting & Domain' },
   { value: 'domain', label: 'Domain' },
+  { value: 'graphic_design', label: 'Graphic Design' },
   { value: 'consultation', label: 'Consultation' },
   { value: 'subscription', label: 'Subscription' },
   { value: 'other', label: 'Other' },
@@ -70,6 +71,21 @@ export const STATUSES = [
   { value: 'overdue', label: 'Overdue', color: 'bg-red-100 text-red-700' },
   { value: 'cancelled', label: 'Cancelled', color: 'bg-amber-100 text-amber-700' },
 ] as const
+
+export const CURRENCIES = [
+  { value: 'LKR', label: 'LKR - Sri Lankan Rupee', symbol: 'LKR' },
+  { value: 'USD', label: 'USD - US Dollar', symbol: '$' },
+  { value: 'AED', label: 'AED - UAE Dirham', symbol: 'AED' },
+  { value: 'QAR', label: 'QAR - Qatari Riyal', symbol: 'QAR' },
+  { value: 'SAR', label: 'SAR - Saudi Riyal', symbol: 'SAR' },
+  { value: 'GBP', label: 'GBP - British Pound', symbol: '£' },
+  { value: 'EUR', label: 'EUR - Euro', symbol: '€' },
+  { value: 'AUD', label: 'AUD - Australian Dollar', symbol: 'A$' },
+  { value: 'INR', label: 'INR - Indian Rupee', symbol: '₹' },
+  { value: 'SGD', label: 'SGD - Singapore Dollar', symbol: 'S$' },
+] as const
+
+export type CurrencyCode = typeof CURRENCIES[number]['value']
 
 export const PAYMENT_METHODS = [
   { value: 'bank_transfer', label: 'Bank Transfer' },
@@ -102,11 +118,16 @@ export interface Settings {
   default_notes: string
 }
 
-export function formatCurrency(amount: number, currency: 'LKR' | 'USD'): string {
-  if (currency === 'USD') {
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+export function formatCurrency(amount: number, currency: string): string {
+  const formatted = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const curr = CURRENCIES.find(c => c.value === currency)
+  if (!curr) return `${currency} ${formatted}`
+  const symbol = curr.symbol
+  // Symbols that go before the number
+  if (['$', '£', '€', '₹'].includes(symbol) || symbol.endsWith('$')) {
+    return `${symbol}${formatted}`
   }
-  return `LKR ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return `${symbol} ${formatted}`
 }
 
 export function getCategoryLabel(value: string): string {
