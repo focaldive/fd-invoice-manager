@@ -268,6 +268,14 @@ export default function InvoicesPage() {
                       <p className="text-xs text-muted-foreground mt-1">
                         Due {new Date(inv.date_due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </p>
+                      {["sent", "overdue"].includes(inv.status) && (
+                        <button
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); markAsPaid(inv.id) }}
+                          className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                        >
+                          <CheckCircle className="h-3.5 w-3.5" /> Mark as Paid
+                        </button>
+                      )}
                     </div>
                   </div>
                 </Link>
