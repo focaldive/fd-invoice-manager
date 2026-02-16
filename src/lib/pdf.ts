@@ -46,7 +46,7 @@ export async function generateInvoicePDF(
 
   // Colors
   const black: [number, number, number] = [0, 0, 0];
-  const gray: [number, number, number] = [110, 110, 110];
+  const gray: [number, number, number] = [0, 0, 0];
 
   // Helper for currency formatting
   const fmt = (amount: number) => formatCurrency(amount, invoice.currency);
@@ -96,13 +96,13 @@ export async function generateInvoicePDF(
 
   y += 5.5;
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(...gray);
+  doc.setTextColor(...black);
   doc.text("Date of issue", labelX, y);
   doc.setTextColor(...black);
   doc.text(formatDate(invoice.date_of_issue), valueX, y);
 
   y += 5.5;
-  doc.setTextColor(...gray);
+  doc.setTextColor(...black);
   doc.text("Date due", labelX, y);
   doc.setTextColor(...black);
   doc.text(formatDate(invoice.date_due), valueX, y);
