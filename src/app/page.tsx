@@ -7,7 +7,7 @@ import { Invoice, formatCurrency, getStatusInfo, CATEGORIES, CURRENCIES } from "
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, FileText, Clock, AlertTriangle, ArrowUpRight, Plus } from "lucide-react"
+import { TrendingUp, FileText, Clock, AlertTriangle, ArrowUpRight, Plus, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import {
@@ -20,25 +20,34 @@ import {
   ResponsiveContainer,
 } from "recharts"
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
 interface DashboardData {
-  totalRevenue: number
   outstandingAmount: number
   invoiceCounts: Record<string, number>
   recentInvoices: Invoice[]
-  monthlyRevenue: { month: string; amount: number }[]
 }
 
 export default function DashboardPage() {
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() + 1
+
   const [data, setData] = useState<DashboardData>({
-    totalRevenue: 0,
     outstandingAmount: 0,
     invoiceCounts: {},
     recentInvoices: [],
-    monthlyRevenue: [],
   })
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([])
   const [currency, setCurrency] = useState("LKR")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [loading, setLoading] = useState(true)
+
+  // Revenue card filters
+  const [revenueYear, setRevenueYear] = useState(currentYear)
+  const [revenueMonth, setRevenueMonth] = useState(currentMonth)
+
+  // Chart year filter
+  const [chartYear, setChartYear] = useState(currentYear)
 
   useEffect(() => {
     fetchDashboard()
@@ -57,52 +66,64 @@ export default function DashboardPage() {
     }
 
     const { data: invoices } = await query.order("created_at", { ascending: false })
-    const allInvoices = (invoices || []) as Invoice[]
+    const fetched = (invoices || []) as Invoice[]
+    setAllInvoices(fetched)
 
-    const totalRevenue = allInvoices
-      .filter((i) => i.status === "paid")
-      .reduce((sum, i) => sum + Number(i.total), 0)
-
-    const outstandingAmount = allInvoices
+    const outstandingAmount = fetched
       .filter((i) => i.status === "sent" || i.status === "overdue")
       .reduce((sum, i) => sum + Number(i.total), 0)
 
     const invoiceCounts: Record<string, number> = {}
-    allInvoices.forEach((i) => {
+    fetched.forEach((i) => {
       invoiceCounts[i.status] = (invoiceCounts[i.status] || 0) + 1
     })
 
-    const currentYear = new Date().getFullYear()
-    const monthlyMap: Record<string, number> = {}
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-    months.forEach((m) => (monthlyMap[m] = 0))
-
-    allInvoices
-      .filter((i) => i.status === "paid" && new Date(i.date_of_issue).getFullYear() === currentYear)
-      .forEach((i) => {
-        const monthIdx = new Date(i.date_of_issue).getMonth()
-        monthlyMap[months[monthIdx]] += Number(i.total)
-      })
-
-    const monthlyRevenue = months.map((m) => ({ month: m, amount: monthlyMap[m] }))
-
     setData({
-      totalRevenue,
       outstandingAmount,
       invoiceCounts,
-      recentInvoices: allInvoices.slice(0, 5),
-      monthlyRevenue,
+      recentInvoices: fetched.slice(0, 5),
     })
     setLoading(false)
   }
 
-  const totalInvoices = Object.values(data.invoiceCounts).reduce((s, c) => s + c, 0)
+  // Available years derived from invoices
+  const availableYears = Array.from(
+    new Set(allInvoices.map((i) => new Date(i.date_of_issue).getFullYear()))
+  ).sort((a, b) => b - a)
+  if (!availableYears.includes(currentYear)) availableYears.unshift(currentYear)
+
+  // Revenue card — filtered by month/year
+  const filteredRevenue = allInvoices
+    .filter((i) => {
+      if (i.status !== "paid") return false
+      const d = new Date(i.date_of_issue)
+      if (d.getFullYear() !== revenueYear) return false
+      if (revenueMonth > 0 && d.getMonth() + 1 !== revenueMonth) return false
+      return true
+    })
+    .reduce((sum, i) => sum + Number(i.total), 0)
+
+  const revenueSubText = revenueMonth > 0
+    ? `${MONTHS[revenueMonth - 1]} ${revenueYear}`
+    : `${revenueYear} — All months`
+
+  // Monthly revenue chart — filtered by chartYear
+  const monthlyRevenue = MONTHS.map((m, idx) => {
+    const amount = allInvoices
+      .filter((i) => i.status === "paid" && new Date(i.date_of_issue).getFullYear() === chartYear && new Date(i.date_of_issue).getMonth() === idx)
+      .reduce((sum, i) => sum + Number(i.total), 0)
+    return { month: m, amount }
+  })
+
+  const totalInvoices = Object.entries(data.invoiceCounts)
+    .filter(([status]) => status !== "cancelled")
+    .reduce((s, [, c]) => s + c, 0)
 
   const stats = [
     {
       label: "Revenue",
-      value: formatCurrency(data.totalRevenue, currency),
-      sub: "From paid invoices",
+      value: formatCurrency(filteredRevenue, currency),
+      sub: revenueSubText,
       icon: TrendingUp,
       color: "text-primary",
       bg: "bg-primary/10",
@@ -171,7 +192,42 @@ export default function DashboardPage() {
 
         {/* Stats */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
+          {/* Revenue card with filters */}
+          <div className="rounded-xl border border-border bg-card p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Revenue</p>
+              <div className={cn("flex h-9 w-9 items-center justify-center rounded-lg", "bg-primary/10")}>
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <p className="mt-3 text-2xl font-semibold tracking-tight font-mono">{formatCurrency(filteredRevenue, currency)}</p>
+            <div className="mt-2 flex items-center gap-1.5">
+              <Select value={String(revenueMonth)} onValueChange={(v) => setRevenueMonth(Number(v))}>
+                <SelectTrigger className="h-7 w-[90px] text-[11px] font-mono bg-secondary border-border rounded-full px-2.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">All Months</SelectItem>
+                  {MONTHS.map((m, idx) => (
+                    <SelectItem key={m} value={String(idx + 1)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(revenueYear)} onValueChange={(v) => setRevenueYear(Number(v))}>
+                <SelectTrigger className="h-7 w-[75px] text-[11px] font-mono bg-secondary border-border rounded-full px-2.5">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((y) => (
+                    <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Other stat cards */}
+          {stats.slice(1).map((stat) => (
             <div key={stat.label} className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{stat.label}</p>
@@ -191,12 +247,37 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-base font-semibold">Monthly Revenue</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">{new Date().getFullYear()} breakdown</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{chartYear} breakdown</p>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setChartYear((y) => y - 1)}
+                  className="h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <Select value={String(chartYear)} onValueChange={(v) => setChartYear(Number(v))}>
+                  <SelectTrigger className="h-7 w-[75px] text-[11px] font-mono bg-secondary border-border rounded-full px-2.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <button
+                  onClick={() => setChartYear((y) => y + 1)}
+                  disabled={chartYear >= currentYear}
+                  className="h-7 w-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
             </div>
-            <div className="h-[280px]">
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.monthlyRevenue} barSize={28}>
+                <BarChart data={monthlyRevenue} barSize={28}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis
                     dataKey="month"
