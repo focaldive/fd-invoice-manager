@@ -8,7 +8,15 @@
       "Bash(git commit:*)",
       "Bash(git push:*)",
       "Bash(npx next build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(wc:*)",
+      "WebFetch(domain:whapi.cloud)",
+      "WebFetch(domain:whapi.readme.io)",
+      "WebFetch(domain:support.whapi.cloud)",
+      "WebFetch(domain:panel.whapi.cloud)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/gen-logo-base64.js:*)",
+      "Bash(npm ls:*)"
     ]
   }
 }
