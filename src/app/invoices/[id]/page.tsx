@@ -246,8 +246,23 @@ export default function InvoiceDetailPage() {
                 >
                   {getStatusInfo(invoice.status).label}
                 </Badge>
+                {invoice.is_auto_generated && (
+                  <Badge className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0 bg-violet-500/20 text-violet-400">
+                    <RotateCcw className="h-3 w-3 mr-1" /> Recurring
+                  </Badge>
+                )}
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">{getCategoryLabel(invoice.category)}</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                {getCategoryLabel(invoice.category)}
+                {invoice.recurring_invoice_id && (
+                  <>
+                    {" · "}
+                    <Link href="/recurring" className="text-primary hover:underline">
+                      Auto-generated from recurring template
+                    </Link>
+                  </>
+                )}
+              </p>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">

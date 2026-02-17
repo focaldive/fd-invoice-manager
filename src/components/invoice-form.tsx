@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { useNavigationGuard } from "@/lib/navigation-guard"
-import { Client, InvoiceItem, Settings, CATEGORIES, CURRENCIES, getClientAbbreviation, buildInvoiceNumber } from "@/lib/types"
+import { Client, InvoiceItem, Settings, CATEGORIES, CURRENCIES, getClientAbbreviation, buildInvoiceNumber, computeNextGenerationDate } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/dialog"
 import { DatePicker } from "@/components/ui/date-picker"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle, MessageCircle, Mail, Loader2 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle, MessageCircle, Mail, Loader2, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -109,7 +110,7 @@ export function InvoiceForm({ invoiceId }: Props) {
   const [invoiceNumber, setInvoiceNumber] = useState("")
   const [clientId, setClientId] = useState("")
   const [dateOfIssue, setDateOfIssue] = useState(toLocalDateString(new Date()))
-  const [dateDue, setDateDue] = useState(toLocalDateString(new Date(Date.now() + 14 * 86400000)))
+  const [dateDue, setDateDue] = useState(toLocalDateString(new Date(Date.now() + 4 * 86400000)))
   const [category, setCategory] = useState("other")
   const [currency, setCurrency] = useState("LKR")
   const [taxPercentage, setTaxPercentage] = useState(0)
@@ -128,6 +129,9 @@ export function InvoiceForm({ invoiceId }: Props) {
   const [sendViaEmail, setSendViaEmail] = useState(false)
   const [sendViaWhatsApp, setSendViaWhatsApp] = useState(false)
   const [delivering, setDelivering] = useState(false)
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(1)
+  const [autoSendWhatsApp, setAutoSendWhatsApp] = useState(false)
   const pendingNavRef = useRef<string | null>(null)
   const savedRef = useRef(false)
 
@@ -226,7 +230,7 @@ export function InvoiceForm({ invoiceId }: Props) {
       setNotes(s.default_notes || "")
       // Set due date based on payment terms
       const due = new Date()
-      due.setDate(due.getDate() + (s.default_payment_terms || 14))
+      due.setDate(due.getDate() + (s.default_payment_terms || 4))
       setDateDue(toLocalDateString(due))
     }
   }
@@ -399,11 +403,57 @@ export function InvoiceForm({ invoiceId }: Props) {
     return savedId || null
   }
 
+  async function saveRecurringTemplate(savedId: string) {
+    const { data: rec, error: recError } = await supabase.from("recurring_invoices").insert({
+      client_id: clientId,
+      currency,
+      tax_percentage: taxPercentage,
+      discount_percentage: discountType === "percentage" ? discountPercentage : 0,
+      discount_amount: discountType === "fixed" ? discountFixedAmount : 0,
+      notes: notes || null,
+      category,
+      day_of_month: recurringDayOfMonth,
+      is_active: true,
+      auto_send_whatsapp: autoSendWhatsApp,
+      generated_count: 1,
+      next_generation_date: computeNextGenerationDate(recurringDayOfMonth),
+    }).select().single()
+
+    if (recError || !rec) {
+      console.error("Recurring template error:", recError)
+      toast.error("Invoice saved but failed to create recurring template")
+      return
+    }
+
+    // Save recurring items
+    await supabase.from("recurring_invoice_items").insert(
+      items.map((item, idx) => ({
+        recurring_invoice_id: rec.id,
+        description: item.description,
+        quantity: Number(item.quantity),
+        unit_price: Number(item.unit_price),
+        amount: Number(item.quantity) * Number(item.unit_price),
+        sort_order: idx,
+      }))
+    )
+
+    // Link the invoice to the recurring template
+    await supabase.from("invoices").update({
+      recurring_invoice_id: rec.id,
+      is_auto_generated: false,
+    }).eq("id", savedId)
+
+    toast.success("Recurring template created")
+  }
+
   async function handleSave(status: "draft" | "sent") {
     if (!validateForm()) return
     setSaving(true)
     const savedId = await saveInvoice(status)
     if (savedId) {
+      if (isRecurring && !isEdit) {
+        await saveRecurringTemplate(savedId)
+      }
       toast.success(isEdit ? "Invoice updated" : "Invoice created")
       savedRef.current = true
       router.push(`/invoices/${savedId}`)
@@ -426,6 +476,10 @@ export function InvoiceForm({ invoiceId }: Props) {
     if (!savedId) {
       setDelivering(false)
       return
+    }
+
+    if (isRecurring && !isEdit) {
+      await saveRecurringTemplate(savedId)
     }
 
     if (sendChannels) {
@@ -742,6 +796,44 @@ export function InvoiceForm({ invoiceId }: Props) {
                 {saving ? "Saving..." : "Save as Draft"}
               </Button>
             </div>
+            {/* Recurring Invoice */}
+            {!isEdit && (
+              <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                    <h3 className="text-sm font-semibold">Recurring Invoice</h3>
+                  </div>
+                  <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+                </div>
+                {isRecurring && (
+                  <div className="space-y-4 pt-2 border-t border-border">
+                    <div>
+                      <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Day of Month</Label>
+                      <Select value={String(recurringDayOfMonth)} onValueChange={(v) => setRecurringDayOfMonth(Number(v))}>
+                        <SelectTrigger className="mt-1.5 font-mono"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                            <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground mt-1">Invoice will be generated on this day each month (1-28)</p>
+                    </div>
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <Checkbox
+                        checked={autoSendWhatsApp}
+                        onCheckedChange={(v) => setAutoSendWhatsApp(!!v)}
+                      />
+                      <div className="flex items-center gap-1.5">
+                        <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
+                        <span className="text-sm">Auto-send via WhatsApp</span>
+                      </div>
+                    </label>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>

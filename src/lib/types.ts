@@ -26,6 +26,8 @@ export interface Invoice {
   category: string
   sent_on_whatsapp: boolean
   sent_on_email: boolean
+  recurring_invoice_id: string | null
+  is_auto_generated: boolean
   created_at: string
   updated_at: string
   client?: Client
@@ -52,6 +54,51 @@ export interface Payment {
   reference: string | null
   notes: string | null
   created_at: string
+}
+
+export interface RecurringInvoice {
+  id: string
+  client_id: string
+  currency: string
+  tax_percentage: number
+  discount_percentage: number
+  discount_amount: number
+  notes: string | null
+  category: string
+  day_of_month: number
+  is_active: boolean
+  auto_send_whatsapp: boolean
+  generated_count: number
+  next_generation_date: string
+  created_at: string
+  updated_at: string
+  client?: Client
+  items?: RecurringInvoiceItem[]
+}
+
+export interface RecurringInvoiceItem {
+  id?: string
+  recurring_invoice_id?: string
+  description: string
+  quantity: number
+  unit_price: number
+  amount: number
+  sort_order: number
+}
+
+export function computeNextGenerationDate(dayOfMonth: number): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const target = new Date(year, month, dayOfMonth)
+  // If the day has already passed this month, use next month
+  if (target <= now) {
+    target.setMonth(target.getMonth() + 1)
+  }
+  const y = target.getFullYear()
+  const m = String(target.getMonth() + 1).padStart(2, '0')
+  const d = String(target.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export const CATEGORIES = [

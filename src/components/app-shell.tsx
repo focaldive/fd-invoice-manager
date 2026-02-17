@@ -13,6 +13,7 @@ import { logout } from "@/lib/auth"
 const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/invoices", label: "Invoices" },
+  { href: "/recurring", label: "Recurring" },
   { href: "/clients", label: "Clients" },
   { href: "/settings", label: "Settings" },
 ]

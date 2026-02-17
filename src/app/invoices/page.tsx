@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Plus, MoreHorizontal, Eye, Download, Copy, XCircle, CheckCircle, Pencil, LayoutGrid, List } from "lucide-react"
+import { Plus, MoreHorizontal, Eye, Download, Copy, XCircle, CheckCircle, Pencil, LayoutGrid, List, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -264,7 +264,10 @@ export default function InvoicesPage() {
                 >
                   <div className="flex flex-col justify-between h-full">
                     <div className="flex items-center justify-between mb-8">
-                      <span className="text-sm font-mono font-semibold">{inv.invoice_number}</span>
+                      <span className="text-sm font-mono font-semibold flex items-center gap-1.5">
+                        {inv.is_auto_generated && <RotateCcw className="h-3 w-3 text-primary" />}
+                        {inv.invoice_number}
+                      </span>
                       <div className="flex items-center gap-1.5">
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); downloadPDF(inv) }}
@@ -336,7 +339,12 @@ export default function InvoicesPage() {
               <TableBody>
                 {filtered.map((inv) => (
                   <TableRow key={inv.id} className="group border-b border-border hover:bg-secondary/50">
-                    <TableCell className="font-mono text-sm font-medium">{inv.invoice_number}</TableCell>
+                    <TableCell className="font-mono text-sm font-medium">
+                      <span className="flex items-center gap-1.5">
+                        {inv.is_auto_generated && <RotateCcw className="h-3 w-3 text-primary" />}
+                        {inv.invoice_number}
+                      </span>
+                    </TableCell>
                     <TableCell className="hidden sm:table-cell text-sm font-medium">{getCategoryLabel(inv.category)}</TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{inv.client?.name || "-"}</TableCell>
                     <TableCell>

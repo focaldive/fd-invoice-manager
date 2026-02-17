@@ -16,7 +16,8 @@
       "WebFetch(domain:panel.whapi.cloud)",
       "Bash(node -e:*)",
       "Bash(node scripts/gen-logo-base64.js:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
