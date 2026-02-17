@@ -281,15 +281,18 @@ export async function generateInvoicePDF(
   }
 
   // Discount if applicable
-  if (Number(invoice.discount_percentage) > 0) {
+  if (Number(invoice.discount_amount) > 0) {
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.15);
     doc.line(totalsLeftX, y, totalsRightX, y);
     y += rowHeight;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...black);
+    const discountLabel = Number(invoice.discount_percentage) > 0
+      ? `Discount (${invoice.discount_percentage}%)`
+      : `Discount`;
     doc.text(
-      `Discount (${invoice.discount_percentage}%)`,
+      discountLabel,
       totalsLeftX,
       y - textOffset,
     );
