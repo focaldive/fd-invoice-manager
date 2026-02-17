@@ -840,7 +840,7 @@ export function InvoiceForm({ invoiceId }: Props) {
               </div>
             </label>
 
-            <label
+            {/* <label
               className={cn(
                 "flex items-center gap-3 rounded-lg border border-border p-3 transition-colors",
                 selectedClient?.email ? "cursor-pointer hover:bg-accent/50" : "opacity-50 cursor-not-allowed",
@@ -859,7 +859,7 @@ export function InvoiceForm({ invoiceId }: Props) {
                   {selectedClient?.email || "No email address on file"}
                 </p>
               </div>
-            </label>
+            </label> */}
           </div>
           <div className="flex flex-col gap-2 pt-4">
             <Button
