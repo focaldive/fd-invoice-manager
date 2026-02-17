@@ -24,6 +24,8 @@ export interface Invoice {
   currency: string
   notes: string | null
   category: string
+  sent_on_whatsapp: boolean
+  sent_on_email: boolean
   created_at: string
   updated_at: string
   client?: Client

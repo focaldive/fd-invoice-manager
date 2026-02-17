@@ -18,7 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { DatePicker } from "@/components/ui/date-picker"
-import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle, MessageCircle, Mail, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -123,6 +124,10 @@ export function InvoiceForm({ invoiceId }: Props) {
   const [newClientDialog, setNewClientDialog] = useState(false)
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "", country: "" })
   const [unsavedDialog, setUnsavedDialog] = useState(false)
+  const [deliveryDialog, setDeliveryDialog] = useState(false)
+  const [sendViaEmail, setSendViaEmail] = useState(false)
+  const [sendViaWhatsApp, setSendViaWhatsApp] = useState(false)
+  const [delivering, setDelivering] = useState(false)
   const pendingNavRef = useRef<string | null>(null)
   const savedRef = useRef(false)
 
@@ -330,13 +335,16 @@ export function InvoiceForm({ invoiceId }: Props) {
     : discountFixedAmount
   const total = subtotal + taxAmount - discountAmount
 
-  async function handleSave(status: "draft" | "sent") {
-    if (!clientId) { toast.error("Please select a client"); return }
-    if (!invoiceNumber) { toast.error("Invoice number not generated yet. Please wait a moment."); return }
-    if (items.some((i) => !i.description.trim())) { toast.error("All items need a description"); return }
+  const selectedClient = clients.find(c => c.id === clientId)
 
-    setSaving(true)
+  function validateForm(): boolean {
+    if (!clientId) { toast.error("Please select a client"); return false }
+    if (!invoiceNumber) { toast.error("Invoice number not generated yet. Please wait a moment."); return false }
+    if (items.some((i) => !i.description.trim())) { toast.error("All items need a description"); return false }
+    return true
+  }
 
+  async function saveInvoice(status: "draft" | "sent"): Promise<string | null> {
     const invoiceData = {
       invoice_number: invoiceNumber,
       client_id: clientId,
@@ -361,8 +369,7 @@ export function InvoiceForm({ invoiceId }: Props) {
       if (error) {
         console.error("Invoice update error:", error)
         toast.error(`Failed to update invoice: ${error.message}`)
-        setSaving(false)
-        return
+        return null
       }
       await supabase.from("invoice_items").delete().eq("invoice_id", invoiceId)
     } else {
@@ -370,8 +377,7 @@ export function InvoiceForm({ invoiceId }: Props) {
       if (error || !data) {
         console.error("Invoice create error:", error)
         toast.error(`Failed to create invoice: ${error?.message || "Unknown error"}`)
-        setSaving(false)
-        return
+        return null
       }
       savedId = data.id
     }
@@ -390,10 +396,86 @@ export function InvoiceForm({ invoiceId }: Props) {
       console.error("Invoice items insert error:", itemsError)
     }
 
-    toast.success(isEdit ? "Invoice updated" : "Invoice created")
-    savedRef.current = true
-    router.push(`/invoices/${savedId}`)
+    return savedId || null
+  }
+
+  async function handleSave(status: "draft" | "sent") {
+    if (!validateForm()) return
+    setSaving(true)
+    const savedId = await saveInvoice(status)
+    if (savedId) {
+      toast.success(isEdit ? "Invoice updated" : "Invoice created")
+      savedRef.current = true
+      router.push(`/invoices/${savedId}`)
+    }
     setSaving(false)
+  }
+
+  function handleOpenDeliveryDialog() {
+    if (!validateForm()) return
+    setSendViaEmail(!!selectedClient?.email)
+    setSendViaWhatsApp(!!selectedClient?.phone)
+    setDeliveryDialog(true)
+  }
+
+  async function handleCreateAndSend(sendChannels: boolean) {
+    setDelivering(true)
+    const status = sendChannels ? "sent" : "draft"
+    const savedId = await saveInvoice(status)
+
+    if (!savedId) {
+      setDelivering(false)
+      return
+    }
+
+    if (sendChannels) {
+      const results: string[] = []
+
+      if (sendViaWhatsApp) {
+        try {
+          const res = await fetch("/api/send-whatsapp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ invoiceId: savedId }),
+          })
+          if (res.ok) results.push("WhatsApp")
+          else {
+            const data = await res.json()
+            toast.error(data.error || "Failed to send via WhatsApp")
+          }
+        } catch {
+          toast.error("Failed to send via WhatsApp")
+        }
+      }
+
+      if (sendViaEmail) {
+        try {
+          const res = await fetch("/api/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ invoiceId: savedId }),
+          })
+          if (res.ok) results.push("Email")
+          else {
+            const data = await res.json()
+            toast.error(data.error || "Failed to send via Email")
+          }
+        } catch {
+          toast.error("Failed to send via Email")
+        }
+      }
+
+      if (results.length > 0) {
+        toast.success(`Invoice sent via ${results.join(" & ")}`)
+      }
+    } else {
+      toast.success(isEdit ? "Invoice updated" : "Invoice saved as draft")
+    }
+
+    savedRef.current = true
+    setDeliveryDialog(false)
+    setDelivering(false)
+    router.push(`/invoices/${savedId}`)
   }
 
   async function handleCreateClient() {
@@ -651,13 +733,13 @@ export function InvoiceForm({ invoiceId }: Props) {
             </div>
 
             <div className="space-y-2">
-              <Button className="w-full h-10 rounded-full" onClick={() => handleSave("sent")} disabled={saving}>
+              <Button className="w-full h-10 rounded-full" onClick={handleOpenDeliveryDialog} disabled={saving}>
                 <Send className="mr-1.5 h-3.5 w-3.5" />
-                {saving ? "Saving..." : "Save & Send"}
+                {isEdit ? "Update Invoice" : "Create Invoice"}
               </Button>
               <Button variant="outline" className="w-full h-10 rounded-full" onClick={() => handleSave("draft")} disabled={saving}>
                 <Save className="mr-1.5 h-3.5 w-3.5" />
-                Save as Draft
+                {saving ? "Saving..." : "Save as Draft"}
               </Button>
             </div>
           </div>
@@ -722,6 +804,82 @@ export function InvoiceForm({ invoiceId }: Props) {
             </Button>
             <Button variant="ghost" onClick={() => setUnsavedDialog(false)} className="w-full rounded-full">
               Continue Editing
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delivery channel dialog */}
+      <Dialog open={deliveryDialog} onOpenChange={(open) => { if (!delivering) setDeliveryDialog(open) }}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Send Invoice</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground mt-0.5">
+              Choose how to deliver this invoice to {selectedClient?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <label
+              className={cn(
+                "flex items-center gap-3 rounded-lg border border-border p-3 transition-colors",
+                selectedClient?.phone ? "cursor-pointer hover:bg-accent/50" : "opacity-50 cursor-not-allowed",
+                sendViaWhatsApp && "border-primary/50 bg-primary/5"
+              )}
+            >
+              <Checkbox
+                checked={sendViaWhatsApp}
+                onCheckedChange={(v) => setSendViaWhatsApp(!!v)}
+                disabled={!selectedClient?.phone}
+              />
+              <MessageCircle className="h-4 w-4 text-[#25D366] shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">WhatsApp</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {selectedClient?.phone || "No phone number on file"}
+                </p>
+              </div>
+            </label>
+
+            <label
+              className={cn(
+                "flex items-center gap-3 rounded-lg border border-border p-3 transition-colors",
+                selectedClient?.email ? "cursor-pointer hover:bg-accent/50" : "opacity-50 cursor-not-allowed",
+                sendViaEmail && "border-primary/50 bg-primary/5"
+              )}
+            >
+              <Checkbox
+                checked={sendViaEmail}
+                onCheckedChange={(v) => setSendViaEmail(!!v)}
+                disabled={!selectedClient?.email}
+              />
+              <Mail className="h-4 w-4 text-blue-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Email</p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {selectedClient?.email || "No email address on file"}
+                </p>
+              </div>
+            </label>
+          </div>
+          <div className="flex flex-col gap-2 pt-4">
+            <Button
+              onClick={() => handleCreateAndSend(true)}
+              disabled={delivering || (!sendViaEmail && !sendViaWhatsApp)}
+              className="w-full rounded-full"
+            >
+              {delivering ? (
+                <><Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Sending...</>
+              ) : (
+                <><Send className="mr-1.5 h-3.5 w-3.5" /> {isEdit ? "Update & Send" : "Create & Send"}</>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => handleCreateAndSend(false)}
+              disabled={delivering}
+              className="w-full rounded-full text-muted-foreground"
+            >
+              {isEdit ? "Update without sending" : "Save without sending"}
             </Button>
           </div>
         </DialogContent>

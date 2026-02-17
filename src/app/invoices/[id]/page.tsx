@@ -41,11 +41,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ArrowLeft, Download, Pencil, CheckCircle, XCircle, CreditCard, Send, RotateCcw } from "lucide-react"
+import { ArrowLeft, Download, Pencil, CheckCircle, XCircle, CreditCard, Send, RotateCcw, MessageCircle, Mail } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { generateInvoicePDF } from "@/lib/pdf"
 import { cn } from "@/lib/utils"
+
+interface DeliveryLog {
+  id: string
+  channel: "whatsapp" | "email"
+  recipient: string
+  status: string
+  created_at: string
+}
 
 export default function InvoiceDetailPage() {
   const params = useParams()
@@ -53,10 +61,15 @@ export default function InvoiceDetailPage() {
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [items, setItems] = useState<InvoiceItem[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
+  const [deliveryLogs, setDeliveryLogs] = useState<DeliveryLog[]>([])
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [paymentDialog, setPaymentDialog] = useState(false)
   const [confirmPaid, setConfirmPaid] = useState(false)
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [confirmWhatsApp, setConfirmWhatsApp] = useState(false)
+  const [confirmEmail, setConfirmEmail] = useState(false)
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     payment_date: new Date().toISOString().split("T")[0],
@@ -81,6 +94,17 @@ export default function InvoiceDetailPage() {
     setPayments(pays || [])
     if (stgs) setSettings(stgs as Settings)
     setLoading(false)
+
+    // Fetch delivery logs via API (uses service role key to bypass RLS)
+    try {
+      const res = await fetch(`/api/delivery-logs?invoiceId=${params.id}`)
+      if (res.ok) {
+        const { logs } = await res.json()
+        setDeliveryLogs(logs || [])
+      }
+    } catch {
+      // API may not be available yet
+    }
   }
 
   async function markAsPaid() {
@@ -114,6 +138,52 @@ export default function InvoiceDetailPage() {
   async function handleDownloadPDF() {
     if (!invoice) return
     await generateInvoicePDF({ ...invoice, items }, settings)
+  }
+
+  async function handleSendWhatsApp() {
+    setSendingWhatsApp(true)
+    try {
+      const res = await fetch("/api/send-whatsapp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: invoice.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || "Failed to send via WhatsApp")
+        return
+      }
+      toast.success("Invoice sent via WhatsApp!")
+      // sent_on_whatsapp is set by the API route, just refetch
+      fetchData()
+    } catch {
+      toast.error("Failed to send via WhatsApp")
+    } finally {
+      setSendingWhatsApp(false)
+    }
+  }
+
+  async function handleSendEmail() {
+    setSendingEmail(true)
+    try {
+      const res = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: invoice.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        toast.error(data.error || "Failed to send via Email")
+        return
+      }
+      toast.success(`Invoice emailed to ${invoice.client?.email}`)
+      await supabase.from("invoices").update({ sent_on_email: true, updated_at: new Date().toISOString() }).eq("id", params.id)
+      fetchData()
+    } catch {
+      toast.error("Failed to send via Email")
+    } finally {
+      setSendingEmail(false)
+    }
   }
 
   async function recordPayment() {
@@ -150,6 +220,8 @@ export default function InvoiceDetailPage() {
   const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0)
   const amountDue = Number(invoice.total) - totalPaid
   const fmt = (n: number) => formatCurrency(n, invoice.currency)
+  const whatsAppSent = !!invoice.sent_on_whatsapp
+  const emailSent = !!invoice.sent_on_email
 
   return (
     <AppShell>
@@ -338,7 +410,7 @@ export default function InvoiceDetailPage() {
           </div>
 
           {/* Right summary */}
-          <div>
+          <div className="space-y-6">
             <div className="rounded-xl border border-border bg-card p-6 sticky top-24 space-y-3">
               <h3 className="text-sm font-semibold mb-4">Summary</h3>
               <div className="flex justify-between text-sm">
@@ -376,6 +448,118 @@ export default function InvoiceDetailPage() {
                 </>
               )}
             </div>
+
+            {/* Send Invoice */}
+            <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+              <h3 className="text-sm font-semibold mb-4">Send Invoice</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!invoice.client?.phone) {
+                    toast.error("Client does not have a phone number")
+                    return
+                  }
+                  setConfirmWhatsApp(true)
+                }}
+                disabled={sendingWhatsApp || !invoice.client?.phone}
+                className={cn(
+                  "w-full h-9 rounded-full justify-center",
+                  whatsAppSent && "border-primary/40 text-primary hover:text-primary"
+                )}
+              >
+                {sendingWhatsApp ? (
+                  <>
+                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                    Sending...
+                  </>
+                ) : whatsAppSent ? (
+                  <>
+                    <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                    WhatsApp Sent
+                  </>
+                ) : (
+                  <>
+                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                    WhatsApp
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!invoice.client?.email) {
+                    toast.error("Client does not have an email address")
+                    return
+                  }
+                  setConfirmEmail(true)
+                }}
+                disabled={sendingEmail || !invoice.client?.email}
+                className={cn(
+                  "w-full h-9 rounded-full justify-center",
+                  emailSent && "border-primary/40 text-primary hover:text-primary"
+                )}
+              >
+                {sendingEmail ? (
+                  <>
+                    <Mail className="mr-1.5 h-3.5 w-3.5" />
+                    Sending...
+                  </>
+                ) : emailSent ? (
+                  <>
+                    <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                    Email Sent
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-1.5 h-3.5 w-3.5" />
+                    Email
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Delivery Tracking */}
+            {deliveryLogs.length > 0 && (
+              <div className="rounded-xl border border-border bg-card p-6">
+                <h3 className="text-sm font-semibold mb-4">Delivery</h3>
+                <div className="space-y-3">
+                  {deliveryLogs.map((log) => (
+                    <div key={log.id} className="flex items-center gap-3">
+                      <div className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full shrink-0",
+                        log.status === "sent" || log.status === "delivered" || log.status === "read"
+                          ? "bg-primary/10"
+                          : log.status === "failed"
+                            ? "bg-red-500/10"
+                            : "bg-muted"
+                      )}>
+                        {log.channel === "whatsapp"
+                          ? <MessageCircle className={cn("h-3.5 w-3.5", log.status === "failed" ? "text-red-400" : "text-[#25D366]")} />
+                          : <Mail className={cn("h-3.5 w-3.5", log.status === "failed" ? "text-red-400" : "text-blue-400")} />
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium capitalize">{log.channel}</span>
+                          {(log.status === "sent" || log.status === "delivered" || log.status === "read") && (
+                            <CheckCircle className="h-3.5 w-3.5 text-primary" />
+                          )}
+                          {log.status === "failed" && (
+                            <XCircle className="h-3.5 w-3.5 text-red-400" />
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{log.recipient}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(log.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -392,6 +576,46 @@ export default function InvoiceDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={markAsPaid}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Send via WhatsApp Confirmation */}
+      <AlertDialog open={confirmWhatsApp} onOpenChange={setConfirmWhatsApp}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{whatsAppSent ? "Resend via WhatsApp" : "Send via WhatsApp"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {whatsAppSent
+                ? `This invoice was already sent via WhatsApp. Do you want to resend ${invoice.invoice_number} to ${invoice.client?.phone}?`
+                : `This will send invoice ${invoice.invoice_number} to ${invoice.client?.phone} via WhatsApp.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmWhatsApp(false); handleSendWhatsApp() }}>
+              {whatsAppSent ? "Resend" : "Send"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Send via Email Confirmation */}
+      <AlertDialog open={confirmEmail} onOpenChange={setConfirmEmail}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{emailSent ? "Resend via Email" : "Send via Email"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {emailSent
+                ? `This invoice was already sent via email. Do you want to resend ${invoice.invoice_number} to ${invoice.client?.email}?`
+                : `This will send invoice ${invoice.invoice_number} to ${invoice.client?.email} via email.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmEmail(false); handleSendEmail() }}>
+              {emailSent ? "Resend" : "Send"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
