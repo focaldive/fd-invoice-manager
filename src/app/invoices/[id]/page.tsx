@@ -67,9 +67,9 @@ export default function InvoiceDetailPage() {
   const [paymentDialog, setPaymentDialog] = useState(false)
   const [confirmPaid, setConfirmPaid] = useState(false)
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false)
-  const [sendingEmail, setSendingEmail] = useState(false)
+  // const [sendingEmail, setSendingEmail] = useState(false)
   const [confirmWhatsApp, setConfirmWhatsApp] = useState(false)
-  const [confirmEmail, setConfirmEmail] = useState(false)
+  // const [confirmEmail, setConfirmEmail] = useState(false)
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     payment_date: new Date().toISOString().split("T")[0],
@@ -163,28 +163,28 @@ export default function InvoiceDetailPage() {
     }
   }
 
-  async function handleSendEmail() {
-    setSendingEmail(true)
-    try {
-      const res = await fetch("/api/send-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: invoice.id }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        toast.error(data.error || "Failed to send via Email")
-        return
-      }
-      toast.success(`Invoice emailed to ${invoice.client?.email}`)
-      await supabase.from("invoices").update({ sent_on_email: true, updated_at: new Date().toISOString() }).eq("id", params.id)
-      fetchData()
-    } catch {
-      toast.error("Failed to send via Email")
-    } finally {
-      setSendingEmail(false)
-    }
-  }
+  // async function handleSendEmail() {
+  //   setSendingEmail(true)
+  //   try {
+  //     const res = await fetch("/api/send-email", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ invoiceId: invoice.id }),
+  //     })
+  //     const data = await res.json()
+  //     if (!res.ok) {
+  //       toast.error(data.error || "Failed to send via Email")
+  //       return
+  //     }
+  //     toast.success(`Invoice emailed to ${invoice.client?.email}`)
+  //     // sent_on_email is set by the API route, just refetch
+  //     fetchData()
+  //   } catch {
+  //     toast.error("Failed to send via Email")
+  //   } finally {
+  //     setSendingEmail(false)
+  //   }
+  // }
 
   async function recordPayment() {
     if (!paymentForm.amount || Number(paymentForm.amount) <= 0) {
@@ -221,7 +221,7 @@ export default function InvoiceDetailPage() {
   const amountDue = Number(invoice.total) - totalPaid
   const fmt = (n: number) => formatCurrency(n, invoice.currency)
   const whatsAppSent = !!invoice.sent_on_whatsapp
-  const emailSent = !!invoice.sent_on_email
+  // const emailSent = !!invoice.sent_on_email
 
   return (
     <AppShell>
@@ -485,6 +485,7 @@ export default function InvoiceDetailPage() {
                   </>
                 )}
               </Button>
+              {/* Email sending — commented out for now
               <Button
                 variant="outline"
                 size="sm"
@@ -518,6 +519,7 @@ export default function InvoiceDetailPage() {
                   </>
                 )}
               </Button>
+              */}
             </div>
 
             {/* Delivery Tracking */}
@@ -600,7 +602,7 @@ export default function InvoiceDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Send via Email Confirmation */}
+      {/* Send via Email Confirmation — commented out for now
       <AlertDialog open={confirmEmail} onOpenChange={setConfirmEmail}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -619,6 +621,7 @@ export default function InvoiceDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      */}
 
       {/* Record Payment Dialog */}
       <Dialog open={paymentDialog} onOpenChange={setPaymentDialog}>
