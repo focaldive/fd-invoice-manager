@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase"
 import { Invoice, Settings, CATEGORIES, formatCurrency, getCategoryLabel, getStatusInfo } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -20,6 +21,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Plus, MoreHorizontal, Eye, Download, Copy, XCircle, CheckCircle, Pencil, LayoutGrid, List } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
@@ -36,6 +47,8 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true)
   const [statusTab, setStatusTab] = useState<StatusTab>("all")
   const [viewMode, setViewMode] = useState<"list" | "grid">("grid")
+  const [clientFilter, setClientFilter] = useState("all")
+  const [confirmPaidId, setConfirmPaidId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchInvoices()
@@ -56,6 +69,7 @@ export default function InvoicesPage() {
     const { error } = await supabase.from("invoices").update({ status: "paid", updated_at: new Date().toISOString() }).eq("id", id)
     if (error) { toast.error("Failed"); return }
     toast.success("Marked as paid")
+    setConfirmPaidId(null)
     fetchInvoices()
   }
 
@@ -132,11 +146,21 @@ export default function InvoicesPage() {
     await generateInvoicePDF(fullInvoice, settings)
   }
 
+  // Derive unique clients from invoices for the filter dropdown
+  const clients = Array.from(
+    new Map(
+      invoices
+        .filter((inv) => inv.client)
+        .map((inv) => [inv.client!.id, inv.client!.name])
+    )
+  ).sort((a, b) => a[1].localeCompare(b[1]))
+
   const filtered = invoices.filter((inv) => {
-    if (statusTab === "paid") return inv.status === "paid"
-    if (statusTab === "unpaid") return ["sent", "overdue"].includes(inv.status)
-    if (statusTab === "draft") return inv.status === "draft"
-    if (statusTab === "cancelled") return inv.status === "cancelled"
+    if (statusTab === "paid" && inv.status !== "paid") return false
+    if (statusTab === "unpaid" && !["sent", "overdue"].includes(inv.status)) return false
+    if (statusTab === "draft" && inv.status !== "draft") return false
+    if (statusTab === "cancelled" && inv.status !== "cancelled") return false
+    if (clientFilter !== "all" && inv.client_id !== clientFilter) return false
     return true
   })
 
@@ -174,6 +198,17 @@ export default function InvoicesPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Select value={clientFilter} onValueChange={setClientFilter}>
+              <SelectTrigger className="h-9 w-[160px] text-xs bg-secondary border-border rounded-full">
+                <SelectValue placeholder="All Clients" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Clients</SelectItem>
+                {clients.map(([id, name]) => (
+                  <SelectItem key={id} value={id}>{name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Link href="/invoices/new">
               <Button size="sm" className="h-9 rounded-full">
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New Invoice
@@ -266,11 +301,11 @@ export default function InvoicesPage() {
                         {formatCurrency(Number(inv.total), inv.currency)}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Due {new Date(inv.date_due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        {inv.status === "paid" ? "on" : "Due"} {new Date(inv.status === "paid" ? inv.date_of_issue : inv.date_due).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                       </p>
                       {["sent", "overdue"].includes(inv.status) && (
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); markAsPaid(inv.id) }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setConfirmPaidId(inv.id) }}
                           className="mt-3 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
                         >
                           <CheckCircle className="h-3.5 w-3.5" /> Mark as Paid
@@ -349,7 +384,7 @@ export default function InvoicesPage() {
                             <Download className="mr-2 h-3.5 w-3.5" /> Download PDF
                           </DropdownMenuItem>
                           {["sent", "overdue"].includes(inv.status) && (
-                            <DropdownMenuItem onClick={() => markAsPaid(inv.id)}>
+                            <DropdownMenuItem onClick={() => setConfirmPaidId(inv.id)}>
                               <CheckCircle className="mr-2 h-3.5 w-3.5" /> Mark as Paid
                             </DropdownMenuItem>
                           )}
@@ -371,6 +406,24 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+
+      {/* Mark as Paid Confirmation */}
+      <AlertDialog open={!!confirmPaidId} onOpenChange={(open) => { if (!open) setConfirmPaidId(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark as Paid</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this invoice as paid? This will update the invoice status.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => confirmPaidId && markAsPaid(confirmPaidId)}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppShell>
   )
 }
