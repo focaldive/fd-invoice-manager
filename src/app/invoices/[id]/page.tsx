@@ -18,6 +18,22 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,7 +41,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ArrowLeft, Download, Pencil, CheckCircle, XCircle, CreditCard, Send } from "lucide-react"
+import { ArrowLeft, Download, Pencil, CheckCircle, XCircle, CreditCard, Send, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { generateInvoicePDF } from "@/lib/pdf"
@@ -40,6 +56,7 @@ export default function InvoiceDetailPage() {
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<Settings | null>(null)
   const [paymentDialog, setPaymentDialog] = useState(false)
+  const [confirmPaid, setConfirmPaid] = useState(false)
   const [paymentForm, setPaymentForm] = useState({
     amount: "",
     payment_date: new Date().toISOString().split("T")[0],
@@ -67,8 +84,17 @@ export default function InvoiceDetailPage() {
   }
 
   async function markAsPaid() {
-    await supabase.from("invoices").update({ status: "paid", updated_at: new Date().toISOString() }).eq("id", params.id)
+    const { error } = await supabase.from("invoices").update({ status: "paid", updated_at: new Date().toISOString() }).eq("id", params.id)
+    if (error) { toast.error("Failed"); return }
     toast.success("Marked as paid")
+    setConfirmPaid(false)
+    fetchData()
+  }
+
+  async function changeStatus(newStatus: string) {
+    const { error } = await supabase.from("invoices").update({ status: newStatus, updated_at: new Date().toISOString() }).eq("id", params.id)
+    if (error) { toast.error("Failed to update status"); return }
+    toast.success(`Status changed to ${newStatus}`)
     fetchData()
   }
 
@@ -167,12 +193,35 @@ export default function InvoiceDetailPage() {
               </>
             )}
             {["sent", "overdue"].includes(invoice.status) && (
-              <>
-
-                <Button size="sm" onClick={markAsPaid} className="h-9 rounded-full">
-                  <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
-                </Button>
-              </>
+              <Button size="sm" onClick={() => setConfirmPaid(true)} className="h-9 rounded-full">
+                <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
+              </Button>
+            )}
+            {["paid", "cancelled"].includes(invoice.status) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-9 rounded-full">
+                    <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Change Status
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[160px]">
+                  {invoice.status !== "draft" && (
+                    <DropdownMenuItem onClick={() => changeStatus("draft")}>
+                      <Pencil className="mr-2 h-3.5 w-3.5" /> Draft
+                    </DropdownMenuItem>
+                  )}
+                  {invoice.status !== "sent" && (
+                    <DropdownMenuItem onClick={() => changeStatus("sent")}>
+                      <Send className="mr-2 h-3.5 w-3.5" /> Sent
+                    </DropdownMenuItem>
+                  )}
+                  {invoice.status === "cancelled" && (
+                    <DropdownMenuItem onClick={() => changeStatus("paid")}>
+                      <CheckCircle className="mr-2 h-3.5 w-3.5" /> Paid
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
             {invoice.status !== "cancelled" && invoice.status !== "paid" && (
               <Button variant="outline" size="sm" onClick={cancelInvoice} className="h-9 rounded-full text-destructive hover:text-destructive">
@@ -302,9 +351,11 @@ export default function InvoiceDetailPage() {
                   <span className="font-mono">{fmt(Number(invoice.tax_amount))}</span>
                 </div>
               )}
-              {Number(invoice.discount_percentage) > 0 && (
+              {Number(invoice.discount_amount) > 0 && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Discount ({invoice.discount_percentage}%)</span>
+                  <span className="text-muted-foreground">
+                    Discount{Number(invoice.discount_percentage) > 0 ? ` (${invoice.discount_percentage}%)` : ""}
+                  </span>
                   <span className="font-mono">-{fmt(Number(invoice.discount_amount))}</span>
                 </div>
               )}
@@ -328,6 +379,22 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Mark as Paid Confirmation */}
+      <AlertDialog open={confirmPaid} onOpenChange={setConfirmPaid}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark as Paid</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to mark this invoice as paid? This will update the invoice status.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={markAsPaid}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Record Payment Dialog */}
       <Dialog open={paymentDialog} onOpenChange={setPaymentDialog}>
