@@ -21,6 +21,7 @@ import { DatePicker } from "@/components/ui/date-picker"
 import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 
 function toLocalDateString(date: Date): string {
   const year = date.getFullYear()
@@ -111,7 +112,9 @@ export function InvoiceForm({ invoiceId }: Props) {
   const [category, setCategory] = useState("other")
   const [currency, setCurrency] = useState("LKR")
   const [taxPercentage, setTaxPercentage] = useState(0)
+  const [discountType, setDiscountType] = useState<"percentage" | "fixed">("percentage")
   const [discountPercentage, setDiscountPercentage] = useState(0)
+  const [discountFixedAmount, setDiscountFixedAmount] = useState(0)
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<InvoiceItem[]>([
     { description: "", quantity: 1, unit_price: 0, amount: 0, sort_order: 0 },
@@ -274,7 +277,13 @@ export function InvoiceForm({ invoiceId }: Props) {
     setCategory(inv.category)
     setCurrency(inv.currency)
     setTaxPercentage(Number(inv.tax_percentage))
-    setDiscountPercentage(Number(inv.discount_percentage))
+    if (Number(inv.discount_percentage) > 0) {
+      setDiscountType("percentage")
+      setDiscountPercentage(Number(inv.discount_percentage))
+    } else if (Number(inv.discount_amount) > 0) {
+      setDiscountType("fixed")
+      setDiscountFixedAmount(Number(inv.discount_amount))
+    }
     setNotes(inv.notes || "")
 
     const { data: itemsData } = await supabase
@@ -316,7 +325,9 @@ export function InvoiceForm({ invoiceId }: Props) {
 
   const subtotal = items.reduce((s, i) => s + Number(i.amount), 0)
   const taxAmount = subtotal * (taxPercentage / 100)
-  const discountAmount = subtotal * (discountPercentage / 100)
+  const discountAmount = discountType === "percentage"
+    ? subtotal * (discountPercentage / 100)
+    : discountFixedAmount
   const total = subtotal + taxAmount - discountAmount
 
   async function handleSave(status: "draft" | "sent") {
@@ -335,7 +346,7 @@ export function InvoiceForm({ invoiceId }: Props) {
       subtotal,
       tax_percentage: taxPercentage,
       tax_amount: taxAmount,
-      discount_percentage: discountPercentage,
+      discount_percentage: discountType === "percentage" ? discountPercentage : 0,
       discount_amount: discountAmount,
       total,
       currency,
@@ -583,12 +594,51 @@ export function InvoiceForm({ invoiceId }: Props) {
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground w-16 shrink-0">Disc %</Label>
-                <Input type="number" value={discountPercentage} onChange={(e) => setDiscountPercentage(parseFloat(e.target.value) || 0)} className="h-8 font-mono text-sm" min={0} max={100} />
+                <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground w-16 shrink-0">Disc</Label>
+                <div className="flex items-center gap-1 flex-1">
+                  <Input
+                    type="number"
+                    value={discountType === "percentage" ? discountPercentage : discountFixedAmount}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || 0
+                      if (discountType === "percentage") setDiscountPercentage(val)
+                      else setDiscountFixedAmount(val)
+                    }}
+                    className="h-8 font-mono text-sm"
+                    min={0}
+                    max={discountType === "percentage" ? 100 : undefined}
+                  />
+                  <div className="flex items-center border border-border rounded-md overflow-hidden shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => { setDiscountType("percentage"); setDiscountFixedAmount(0) }}
+                      className={cn(
+                        "px-3 h-8 text-xs font-medium transition-colors cursor-pointer",
+                        discountType === "percentage"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      %
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setDiscountType("fixed"); setDiscountPercentage(0) }}
+                      className={cn(
+                        "px-3 h-8 text-xs font-medium transition-colors cursor-pointer",
+                        discountType === "fixed"
+                          ? "bg-foreground text-background"
+                          : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      Fixed
+                    </button>
+                  </div>
+                </div>
               </div>
-              {discountPercentage > 0 && (
+              {discountAmount > 0 && (
                 <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Discount ({discountPercentage}%)</span>
+                  <span>Discount{discountType === "percentage" ? ` (${discountPercentage}%)` : ""}</span>
                   <span className="font-mono">-{formatAmount(discountAmount)}</span>
                 </div>
               )}
