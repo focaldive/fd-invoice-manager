@@ -20,7 +20,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle, MessageCircle, Mail, Loader2, RotateCcw } from "lucide-react"
+import { Plus, Trash2, ArrowLeft, Send, Save, AlertTriangle, MessageCircle, /* Mail, */ Loader2, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
@@ -126,7 +126,7 @@ export function InvoiceForm({ invoiceId }: Props) {
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "", country: "" })
   const [unsavedDialog, setUnsavedDialog] = useState(false)
   const [deliveryDialog, setDeliveryDialog] = useState(false)
-  const [sendViaEmail, setSendViaEmail] = useState(false)
+  // const [sendViaEmail, setSendViaEmail] = useState(false)
   const [sendViaWhatsApp, setSendViaWhatsApp] = useState(false)
   const [delivering, setDelivering] = useState(false)
   const [isRecurring, setIsRecurring] = useState(false)
@@ -463,7 +463,7 @@ export function InvoiceForm({ invoiceId }: Props) {
 
   function handleOpenDeliveryDialog() {
     if (!validateForm()) return
-    setSendViaEmail(!!selectedClient?.email)
+    // setSendViaEmail(!!selectedClient?.email)
     setSendViaWhatsApp(!!selectedClient?.phone)
     setDeliveryDialog(true)
   }
@@ -502,22 +502,22 @@ export function InvoiceForm({ invoiceId }: Props) {
         }
       }
 
-      if (sendViaEmail) {
-        try {
-          const res = await fetch("/api/send-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ invoiceId: savedId }),
-          })
-          if (res.ok) results.push("Email")
-          else {
-            const data = await res.json()
-            toast.error(data.error || "Failed to send via Email")
-          }
-        } catch {
-          toast.error("Failed to send via Email")
-        }
-      }
+      // if (sendViaEmail) {
+      //   try {
+      //     const res = await fetch("/api/send-email", {
+      //       method: "POST",
+      //       headers: { "Content-Type": "application/json" },
+      //       body: JSON.stringify({ invoiceId: savedId }),
+      //     })
+      //     if (res.ok) results.push("Email")
+      //     else {
+      //       const data = await res.json()
+      //       toast.error(data.error || "Failed to send via Email")
+      //     }
+      //   } catch {
+      //     toast.error("Failed to send via Email")
+      //   }
+      // }
 
       if (results.length > 0) {
         toast.success(`Invoice sent via ${results.join(" & ")}`)
@@ -956,7 +956,7 @@ export function InvoiceForm({ invoiceId }: Props) {
           <div className="flex flex-col gap-2 pt-4">
             <Button
               onClick={() => handleCreateAndSend(true)}
-              disabled={delivering || (!sendViaEmail && !sendViaWhatsApp)}
+              disabled={delivering || !sendViaWhatsApp}
               className="w-full rounded-full"
             >
               {delivering ? (
