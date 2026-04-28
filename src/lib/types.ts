@@ -1,90 +1,27 @@
-export interface Client {
-  id: string
-  name: string
-  email: string | null
-  phone: string | null
-  address: string | null
-  country: string | null
-  created_at: string
-}
+import type { InferSelectModel } from "drizzle-orm"
+import type {
+  clients,
+  invoices,
+  invoiceItems,
+  payments,
+  recurringInvoices,
+  recurringInvoiceItems,
+  settings,
+} from "@/server/db/schema"
 
-export interface Invoice {
-  id: string
-  invoice_number: string
-  client_id: string | null
-  date_of_issue: string
-  date_due: string
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
-  subtotal: number
-  tax_percentage: number
-  tax_amount: number
-  discount_percentage: number
-  discount_amount: number
-  total: number
-  currency: string
-  notes: string | null
-  category: string
-  sent_on_whatsapp: boolean
-  sent_on_email: boolean
-  recurring_invoice_id: string | null
-  is_auto_generated: boolean
-  created_at: string
-  updated_at: string
-  client?: Client
+export type Client = InferSelectModel<typeof clients>
+export type Invoice = InferSelectModel<typeof invoices> & {
+  client?: Client | null
   items?: InvoiceItem[]
   payments?: Payment[]
 }
-
-export interface InvoiceItem {
-  id?: string
-  invoice_id?: string
-  description: string
-  quantity: number
-  unit_price: number
-  amount: number
-  sort_order: number
-}
-
-export interface Payment {
-  id: string
-  invoice_id: string
-  amount: number
-  payment_date: string
-  payment_method: 'bank_transfer' | 'cash' | 'payhere' | 'paypal' | 'other'
-  reference: string | null
-  notes: string | null
-  created_at: string
-}
-
-export interface RecurringInvoice {
-  id: string
-  client_id: string
-  currency: string
-  tax_percentage: number
-  discount_percentage: number
-  discount_amount: number
-  notes: string | null
-  category: string
-  day_of_month: number
-  is_active: boolean
-  auto_send_whatsapp: boolean
-  generated_count: number
-  next_generation_date: string
-  created_at: string
-  updated_at: string
-  client?: Client
+export type InvoiceItem = InferSelectModel<typeof invoiceItems>
+export type Payment = InferSelectModel<typeof payments>
+export type RecurringInvoice = InferSelectModel<typeof recurringInvoices> & {
+  client?: Client | null
   items?: RecurringInvoiceItem[]
 }
-
-export interface RecurringInvoiceItem {
-  id?: string
-  recurring_invoice_id?: string
-  description: string
-  quantity: number
-  unit_price: number
-  amount: number
-  sort_order: number
-}
+export type RecurringInvoiceItem = InferSelectModel<typeof recurringInvoiceItems>
 
 export function computeNextGenerationDate(dayOfMonth: number): string {
   const now = new Date()
@@ -152,20 +89,7 @@ export const COMPANY = {
   website: 'focaldive.com',
 }
 
-export interface Settings {
-  id: string
-  company_name: string
-  company_email: string
-  company_phone: string
-  company_address: string
-  company_website: string
-  invoice_prefix: string
-  invoice_number_digits: number
-  default_currency: string
-  default_tax_percentage: number
-  default_payment_terms: number
-  default_notes: string
-}
+export type Settings = InferSelectModel<typeof settings>
 
 export function formatCurrency(amount: number, currency: string): string {
   const formatted = amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

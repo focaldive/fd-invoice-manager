@@ -1,43 +1,22 @@
-"use client"
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { AppShell } from "@/components/app-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { formatCurrency, getStatusInfo } from "@/lib/types";
+import { getClientWithInvoices } from "@/server/queries/clients";
 
-import { AppShell } from "@/components/app-shell"
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import { Client, Invoice, formatCurrency, getStatusInfo } from "@/lib/types"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft, Mail, Phone, MapPin } from "lucide-react"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const client = await getClientWithInvoices(id);
 
-export default function ClientDetailPage() {
-  const params = useParams()
-  const [client, setClient] = useState<Client | null>(null)
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [loading, setLoading] = useState(true)
+  if (!client) notFound();
 
-  useEffect(() => {
-    fetchData()
-  }, [params.id])
-
-  async function fetchData() {
-    const { data: c } = await supabase.from("clients").select("*").eq("id", params.id).single()
-    setClient(c)
-    const { data: inv } = await supabase
-      .from("invoices")
-      .select("*")
-      .eq("client_id", params.id)
-      .order("date_of_issue", { ascending: false })
-    setInvoices(inv || [])
-    setLoading(false)
-  }
-
-  if (loading) return <AppShell><div className="flex items-center justify-center py-20 text-muted-foreground text-sm">Loading...</div></AppShell>
-  if (!client) return <AppShell><div className="flex items-center justify-center py-20 text-muted-foreground text-sm">Client not found</div></AppShell>
-
-  const lkrInvoices = invoices.filter(i => i.currency === 'LKR')
-  const usdInvoices = invoices.filter(i => i.currency === 'USD')
+  const invoices = client.invoices;
+  const lkrInvoices = invoices.filter((i) => i.currency === "LKR");
+  const usdInvoices = invoices.filter((i) => i.currency === "USD");
 
   return (
     <AppShell>
@@ -59,20 +38,20 @@ export default function ClientDetailPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total Billed</p>
-            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono mt-1">{formatCurrency(lkrInvoices.reduce((s, i) => s + Number(i.total), 0), 'LKR')}</p>}
-            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono mt-1">{formatCurrency(usdInvoices.reduce((s, i) => s + Number(i.total), 0), 'USD')}</p>}
+            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono mt-1">{formatCurrency(lkrInvoices.reduce((s, i) => s + Number(i.total), 0), "LKR")}</p>}
+            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono mt-1">{formatCurrency(usdInvoices.reduce((s, i) => s + Number(i.total), 0), "USD")}</p>}
             {invoices.length === 0 && <p className="text-lg font-semibold font-mono text-muted-foreground mt-1">-</p>}
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total Paid</p>
-            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-primary mt-1">{formatCurrency(lkrInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.total), 0), 'LKR')}</p>}
-            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-primary mt-1">{formatCurrency(usdInvoices.filter(i => i.status === 'paid').reduce((s, i) => s + Number(i.total), 0), 'USD')}</p>}
+            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-primary mt-1">{formatCurrency(lkrInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0), "LKR")}</p>}
+            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-primary mt-1">{formatCurrency(usdInvoices.filter((i) => i.status === "paid").reduce((s, i) => s + Number(i.total), 0), "USD")}</p>}
             {invoices.length === 0 && <p className="text-lg font-semibold font-mono text-muted-foreground mt-1">-</p>}
           </div>
           <div className="rounded-xl border border-border bg-card p-5">
             <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Outstanding</p>
-            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-amber-400 mt-1">{formatCurrency(lkrInvoices.filter(i => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + Number(i.total), 0), 'LKR')}</p>}
-            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-amber-400 mt-1">{formatCurrency(usdInvoices.filter(i => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + Number(i.total), 0), 'USD')}</p>}
+            {lkrInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-amber-400 mt-1">{formatCurrency(lkrInvoices.filter((i) => ["sent", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i.total), 0), "LKR")}</p>}
+            {usdInvoices.length > 0 && <p className="text-lg font-semibold font-mono text-amber-400 mt-1">{formatCurrency(usdInvoices.filter((i) => ["sent", "overdue"].includes(i.status)).reduce((s, i) => s + Number(i.total), 0), "USD")}</p>}
             {invoices.length === 0 && <p className="text-lg font-semibold font-mono text-muted-foreground mt-1">-</p>}
           </div>
         </div>
@@ -87,12 +66,12 @@ export default function ClientDetailPage() {
             ) : (
               <div className="space-y-1">
                 {invoices.map((inv) => {
-                  const statusInfo = getStatusInfo(inv.status)
+                  const statusInfo = getStatusInfo(inv.status);
                   return (
                     <Link key={inv.id} href={`/invoices/${inv.id}`} className="flex items-center justify-between rounded-lg p-3 hover:bg-secondary transition-colors group">
                       <div>
-                        <p className="text-sm font-mono font-medium group-hover:text-primary transition-colors">{inv.invoice_number}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{new Date(inv.date_of_issue).toLocaleDateString()}</p>
+                        <p className="text-sm font-mono font-medium group-hover:text-primary transition-colors">{inv.invoiceNumber}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{new Date(inv.dateOfIssue).toLocaleDateString()}</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-mono font-semibold">{formatCurrency(Number(inv.total), inv.currency)}</p>
@@ -109,7 +88,7 @@ export default function ClientDetailPage() {
                         </Badge>
                       </div>
                     </Link>
-                  )
+                  );
                 })}
               </div>
             )}
@@ -117,5 +96,5 @@ export default function ClientDetailPage() {
         </div>
       </div>
     </AppShell>
-  )
+  );
 }

@@ -81,20 +81,20 @@ export async function generateInvoicePDF(
   doc.setTextColor(...black);
   doc.text("Invoice number", labelX, y);
   doc.setFont("helvetica", "normal");
-  doc.text(invoice.invoice_number, valueX, y);
+  doc.text(invoice.invoiceNumber, valueX, y);
 
   y += 5.5;
   doc.setFont("helvetica", "normal");
   doc.setTextColor(...black);
   doc.text("Date of issue", labelX, y);
   doc.setTextColor(...black);
-  doc.text(formatDate(invoice.date_of_issue), valueX, y);
+  doc.text(formatDate(invoice.dateOfIssue), valueX, y);
 
   y += 5.5;
   doc.setTextColor(...black);
   doc.text("Date due", labelX, y);
   doc.setTextColor(...black);
-  doc.text(formatDate(invoice.date_due), valueX, y);
+  doc.text(formatDate(invoice.dateDue), valueX, y);
 
   y += 14;
 
@@ -105,13 +105,13 @@ export async function generateInvoicePDF(
   const rightColX = marginLeft + contentWidth * 0.48;
 
   // Use settings if provided, otherwise fall back to COMPANY constant
-  const companyName = (settings?.company_name || COMPANY.name).replace(
+  const companyName = (settings?.companyName || COMPANY.name).replace(
     /\n/g,
     " ",
   );
-  const companyEmail = settings?.company_email || COMPANY.email;
-  const companyPhone = settings?.company_phone || COMPANY.phone;
-  const companyAddress = settings?.company_address || COMPANY.address;
+  const companyEmail = settings?.companyEmail || COMPANY.email;
+  const companyPhone = settings?.companyPhone || COMPANY.phone;
+  const companyAddress = settings?.companyAddress || COMPANY.address;
 
   // Left: Company
   doc.setFontSize(9);
@@ -173,7 +173,7 @@ export async function generateInvoicePDF(
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...black);
-  const amountDueText = `${fmt(Number(invoice.total))} ${invoice.currency} due ${formatDate(invoice.date_due)}`;
+  const amountDueText = `${fmt(Number(invoice.total))} ${invoice.currency} due ${formatDate(invoice.dateDue)}`;
   doc.text(amountDueText, marginLeft, y);
 
   y += 16;
@@ -185,7 +185,7 @@ export async function generateInvoicePDF(
   const tableBody = invoice.items.map((item) => [
     item.description,
     String(item.quantity),
-    fmt(Number(item.unit_price)),
+    fmt(Number(item.unitPrice)),
     fmt(Number(item.amount)),
   ]);
 
@@ -256,29 +256,29 @@ export async function generateInvoicePDF(
   });
 
   // Tax if applicable
-  if (Number(invoice.tax_percentage) > 0) {
+  if (Number(invoice.taxPercentage) > 0) {
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.15);
     doc.line(totalsLeftX, y, totalsRightX, y);
     y += rowHeight;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...black);
-    doc.text(`Tax (${invoice.tax_percentage}%)`, totalsLeftX, y - textOffset);
-    doc.text(fmt(Number(invoice.tax_amount)), totalsRightX, y - textOffset, {
+    doc.text(`Tax (${invoice.taxPercentage}%)`, totalsLeftX, y - textOffset);
+    doc.text(fmt(Number(invoice.taxAmount)), totalsRightX, y - textOffset, {
       align: "right",
     });
   }
 
   // Discount if applicable
-  if (Number(invoice.discount_amount) > 0) {
+  if (Number(invoice.discountAmount) > 0) {
     doc.setDrawColor(200, 200, 200);
     doc.setLineWidth(0.15);
     doc.line(totalsLeftX, y, totalsRightX, y);
     y += rowHeight;
     doc.setFont("helvetica", "normal");
     doc.setTextColor(...black);
-    const discountLabel = Number(invoice.discount_percentage) > 0
-      ? `Discount (${invoice.discount_percentage}%)`
+    const discountLabel = Number(invoice.discountPercentage) > 0
+      ? `Discount (${invoice.discountPercentage}%)`
       : `Discount`;
     doc.text(
       discountLabel,
@@ -286,7 +286,7 @@ export async function generateInvoicePDF(
       y - textOffset,
     );
     doc.text(
-      `-${fmt(Number(invoice.discount_amount))}`,
+      `-${fmt(Number(invoice.discountAmount))}`,
       totalsRightX,
       y - textOffset,
       { align: "right" },
@@ -349,7 +349,7 @@ export async function generateInvoicePDF(
       return doc.output("arraybuffer");
     case "download":
     default:
-      doc.save(`${invoice.invoice_number}.pdf`);
+      doc.save(`${invoice.invoiceNumber}.pdf`);
       return;
   }
 }
