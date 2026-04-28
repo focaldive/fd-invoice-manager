@@ -166,10 +166,8 @@ export function InvoiceDetail({
   async function handleSendWhatsApp() {
     setSendingWhatsApp(true);
     try {
-      const res = await fetch("/api/send-whatsapp", {
+      const res = await fetch(`/api/invoices/${invoice.id}/send-whatsapp`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: invoice.id }),
       });
       const data = await res.json();
       if (!res.ok) {

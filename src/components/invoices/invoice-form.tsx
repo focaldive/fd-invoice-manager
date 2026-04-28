@@ -437,10 +437,8 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
 
     if (sendChannels && sendViaWhatsApp) {
       try {
-        const res = await fetch("/api/send-whatsapp", {
+        const res = await fetch(`/api/invoices/${savedId}/send-whatsapp`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ invoiceId: savedId }),
         });
         if (res.ok) {
           toast.success("Invoice sent via WhatsApp");
