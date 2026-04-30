@@ -21,7 +21,8 @@
       "Bash(docker exec *)",
       "Bash(npx drizzle-kit *)",
       "Bash(npm run *)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "Bash(npm uninstall *)"
     ]
   }
 }
