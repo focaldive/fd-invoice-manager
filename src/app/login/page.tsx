@@ -1,8 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { login, isAuthenticated } from "@/lib/auth"
 import { FocalDiveLogo } from "@/components/logo"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,33 +15,24 @@ export default function LoginPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-  const [checking, setChecking] = useState(true)
 
-  useEffect(() => {
-    if (isAuthenticated()) {
-      router.replace("/")
-    } else {
-      setChecking(false)
-    }
-  }, [router])
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
 
-    // Small delay so the button shows loading state
-    setTimeout(() => {
-      const success = login(username, password)
-      if (success) {
-        router.replace("/")
-      } else {
-        toast.error("Invalid username or password")
-        setLoading(false)
-      }
-    }, 300)
-  }
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    })
 
-  if (checking) return null
+    if (res.ok) {
+      router.replace("/")
+    } else {
+      toast.error("Invalid username or password")
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">

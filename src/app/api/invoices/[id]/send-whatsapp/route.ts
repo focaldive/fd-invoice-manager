@@ -5,11 +5,13 @@ import { invoices } from "@/server/db/schema";
 import { getInvoiceFull } from "@/server/queries/invoices";
 import { logDelivery } from "@/server/queries/delivery-logs";
 import { sendInvoiceWhatsApp } from "@/server/integrations/whapi";
+import { requireSession } from "@/server/auth/session";
 
 export async function POST(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  await requireSession();
   const { id } = await params;
 
   const invoice = await getInvoiceFull(id);

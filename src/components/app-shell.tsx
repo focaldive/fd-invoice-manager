@@ -7,8 +7,6 @@ import { Menu, X, LogOut } from "lucide-react"
 import { useState } from "react"
 import { FocalDiveLogo } from "@/components/logo"
 import { useNavigationGuard } from "@/lib/navigation-guard"
-import { AuthGuard } from "@/components/auth-guard"
-import { logout } from "@/lib/auth"
 
 const navItems = [
   { href: "/", label: "Dashboard" },
@@ -31,13 +29,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     }
   }
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST" })
     router.replace("/login")
   }
 
   return (
-    <AuthGuard>
     <div className="min-h-screen bg-background">
       {/* Top Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-xl">
@@ -132,6 +129,5 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
     </div>
-    </AuthGuard>
   )
 }
