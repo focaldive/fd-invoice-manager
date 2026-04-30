@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RotateCcw, Pause, Play, Trash2, MessageCircle, Plus } from "lucide-react";
+import { RotateCcw, Pause, Play, Trash2, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { getCategoryLabel } from "@/lib/types";
@@ -98,7 +98,6 @@ export function RecurringTable({ templates }: { templates: Template[] }) {
                   <TableHead className="text-xs text-muted-foreground font-medium">Category</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium text-center">Day</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">Currency</TableHead>
-                  <TableHead className="text-xs text-muted-foreground font-medium text-center">Auto-send</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium text-center">Generated</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">Status</TableHead>
                   <TableHead className="text-xs text-muted-foreground font-medium">Next</TableHead>
@@ -112,11 +111,6 @@ export function RecurringTable({ templates }: { templates: Template[] }) {
                     <TableCell className="text-sm text-muted-foreground">{getCategoryLabel(t.category)}</TableCell>
                     <TableCell className="text-sm font-mono text-center">{t.dayOfMonth}</TableCell>
                     <TableCell className="text-sm font-mono">{t.currency}</TableCell>
-                    <TableCell className="text-center">
-                      {t.autoSendWhatsapp && (
-                        <MessageCircle className="h-3.5 w-3.5 text-[#25D366] mx-auto" />
-                      )}
-                    </TableCell>
                     <TableCell className="text-sm font-mono text-center">{t.generatedCount}</TableCell>
                     <TableCell>
                       <Badge

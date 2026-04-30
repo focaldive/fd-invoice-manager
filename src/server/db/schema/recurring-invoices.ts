@@ -27,7 +27,6 @@ export const recurringInvoices = pgTable(
     category: text("category").notNull().default("other"),
     dayOfMonth: integer("day_of_month").notNull().default(1),
     isActive: boolean("is_active").notNull().default(true),
-    autoSendWhatsapp: boolean("auto_send_whatsapp").notNull().default(false),
     generatedCount: integer("generated_count").notNull().default(0),
     nextGenerationDate: date("next_generation_date").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

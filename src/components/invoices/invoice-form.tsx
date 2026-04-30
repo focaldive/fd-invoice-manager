@@ -23,7 +23,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
   Plus,
@@ -32,8 +31,6 @@ import {
   Send,
   Save,
   AlertTriangle,
-  MessageCircle,
-  Loader2,
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -189,12 +186,8 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
   const [newClientDialog, setNewClientDialog] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "", country: "" });
   const [unsavedDialog, setUnsavedDialog] = useState(false);
-  const [deliveryDialog, setDeliveryDialog] = useState(false);
-  const [sendViaWhatsApp, setSendViaWhatsApp] = useState(false);
-  const [delivering, setDelivering] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(1);
-  const [autoSendWhatsApp, setAutoSendWhatsApp] = useState(false);
   const pendingNavRef = useRef<string | null>(null);
   const savedRef = useRef(false);
 
@@ -318,8 +311,6 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
     discountType === "percentage" ? subtotal * (discountPercentage / 100) : discountFixedAmount;
   const total = subtotal + taxAmount - discountAmount;
 
-  const selectedClient = clients.find((c) => c.id === clientId);
-
   function validateForm(): boolean {
     if (!clientId) {
       toast.error("Please select a client");
@@ -386,7 +377,6 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
           notes: notes || null,
           category,
           dayOfMonth: recurringDayOfMonth,
-          autoSendWhatsapp: autoSendWhatsApp,
         },
         items: items.map((item, idx) => ({
           description: item.description,
@@ -415,48 +405,6 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
       router.push(`/invoices/${savedId}`);
     }
     setSaving(false);
-  }
-
-  function handleOpenDeliveryDialog() {
-    if (!validateForm()) return;
-    setSendViaWhatsApp(!!selectedClient?.phone);
-    setDeliveryDialog(true);
-  }
-
-  async function handleCreateAndSend(sendChannels: boolean) {
-    setDelivering(true);
-    const status = sendChannels ? "sent" : "draft";
-    const savedId = await persistInvoice(status);
-    if (!savedId) {
-      setDelivering(false);
-      return;
-    }
-    if (isRecurring && !isEdit) {
-      await persistRecurring(savedId);
-    }
-
-    if (sendChannels && sendViaWhatsApp) {
-      try {
-        const res = await fetch(`/api/invoices/${savedId}/send-whatsapp`, {
-          method: "POST",
-        });
-        if (res.ok) {
-          toast.success("Invoice sent via WhatsApp");
-        } else {
-          const data = await res.json();
-          toast.error(data.error || "Failed to send via WhatsApp");
-        }
-      } catch {
-        toast.error("Failed to send via WhatsApp");
-      }
-    } else if (!sendChannels) {
-      toast.success(isEdit ? "Invoice updated" : "Invoice saved as draft");
-    }
-
-    savedRef.current = true;
-    setDeliveryDialog(false);
-    setDelivering(false);
-    router.push(`/invoices/${savedId}`);
   }
 
   async function handleCreateClient() {
@@ -786,7 +734,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
               </div>
             </div>
             <div className="space-y-2">
-              <Button className="w-full h-10 rounded-full" onClick={handleOpenDeliveryDialog} disabled={saving}>
+              <Button className="w-full h-10 rounded-full" onClick={() => handleSave("sent")} disabled={saving}>
                 <Send className="mr-1.5 h-3.5 w-3.5" />
                 {isEdit ? "Update Invoice" : "Create Invoice"}
               </Button>
@@ -827,16 +775,6 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
                         Invoice will be generated on this day each month (1-28)
                       </p>
                     </div>
-                    <label className="flex items-center gap-3 cursor-pointer">
-                      <Checkbox
-                        checked={autoSendWhatsApp}
-                        onCheckedChange={(v) => setAutoSendWhatsApp(!!v)}
-                      />
-                      <div className="flex items-center gap-1.5">
-                        <MessageCircle className="h-3.5 w-3.5 text-[#25D366]" />
-                        <span className="text-sm">Auto-send via WhatsApp</span>
-                      </div>
-                    </label>
                   </div>
                 )}
               </div>
@@ -946,63 +884,6 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deliveryDialog} onOpenChange={(open) => { if (!delivering) setDeliveryDialog(open); }}>
-        <DialogContent className="sm:max-w-[440px]">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-semibold">Send Invoice</DialogTitle>
-            <DialogDescription className="text-sm text-muted-foreground mt-0.5">
-              Choose how to deliver this invoice to {selectedClient?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <label
-              className={cn(
-                "flex items-center gap-3 rounded-lg border border-border p-3 transition-colors",
-                selectedClient?.phone ? "cursor-pointer hover:bg-accent/50" : "opacity-50 cursor-not-allowed",
-                sendViaWhatsApp && "border-primary/50 bg-primary/5",
-              )}
-            >
-              <Checkbox
-                checked={sendViaWhatsApp}
-                onCheckedChange={(v) => setSendViaWhatsApp(!!v)}
-                disabled={!selectedClient?.phone}
-              />
-              <MessageCircle className="h-4 w-4 text-[#25D366] shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">WhatsApp</p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {selectedClient?.phone || "No phone number on file"}
-                </p>
-              </div>
-            </label>
-          </div>
-          <div className="flex flex-col gap-2 pt-4">
-            <Button
-              onClick={() => handleCreateAndSend(true)}
-              disabled={delivering || !sendViaWhatsApp}
-              className="w-full rounded-full"
-            >
-              {delivering ? (
-                <>
-                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> Sending...
-                </>
-              ) : (
-                <>
-                  <Send className="mr-1.5 h-3.5 w-3.5" /> {isEdit ? "Update & Send" : "Create & Send"}
-                </>
-              )}
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={() => handleCreateAndSend(false)}
-              disabled={delivering}
-              className="w-full rounded-full text-muted-foreground"
-            >
-              {isEdit ? "Update without sending" : "Save without sending"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

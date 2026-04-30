@@ -32,8 +32,6 @@ export const invoices = pgTable(
     currency: text("currency").notNull().default("LKR"),
     notes: text("notes"),
     category: text("category").notNull().default("other"),
-    sentOnWhatsapp: boolean("sent_on_whatsapp").notNull().default(false),
-    sentOnEmail: boolean("sent_on_email").notNull().default(false),
     recurringInvoiceId: uuid("recurring_invoice_id").references(() => recurringInvoices.id, {
       onDelete: "set null",
     }),

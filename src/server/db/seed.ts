@@ -18,16 +18,17 @@ async function main() {
 
   await db.insert(schema.settings).values({
     companyName: "FocalDive (Pvt) Ltd",
-    companyEmail: "devfocaldive@gmail.com",
-    companyPhone: "+94 77 123 4567",
-    companyAddress: "Kurunegala, North Western Province, Sri Lanka",
-    companyWebsite: "focaldive.com",
+    companyEmail: "accounts@focaldive.io",
+    companyPhone: "+94 77 743 2106",
+    companyAddress: "Waun Right,\nManalkundru\nPuttalam, Sri Lanka",
+    companyWebsite: "focaldive.io",
     invoicePrefix: "FD",
     invoiceNumberDigits: 3,
     defaultCurrency: "LKR",
     defaultTaxPercentage: "0",
     defaultPaymentTerms: 7,
-    defaultNotes: "",
+    defaultNotes:
+      "Terms:\n1. Please settle the due amount within 3-4 business days.\n2. Services are non-refundable once delivered\n3. Please include the invoice number in your payment reference.\n\nNotes:\nThank you for your business!\nQuestions? Contact us at accounts@focaldive.io",
   });
 
   console.log("Seeded settings");

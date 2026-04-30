@@ -27,7 +27,6 @@ const RecurringTemplateInput = z.object({
   notes: z.string().nullable().optional(),
   category: z.string().min(1),
   dayOfMonth: z.number().int().min(1).max(28),
-  autoSendWhatsapp: z.boolean(),
 });
 
 export type RecurringTemplateInputData = z.infer<typeof RecurringTemplateInput>;
@@ -54,7 +53,6 @@ export async function createRecurringTemplate(args: {
         category: template.category,
         dayOfMonth: template.dayOfMonth,
         isActive: true,
-        autoSendWhatsapp: template.autoSendWhatsapp,
         generatedCount: 1,
         nextGenerationDate: computeNextGenerationDate(template.dayOfMonth),
       })

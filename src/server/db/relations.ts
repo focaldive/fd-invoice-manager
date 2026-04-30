@@ -5,7 +5,6 @@ import { invoiceItems } from "./schema/invoice-items";
 import { payments } from "./schema/payments";
 import { recurringInvoices } from "./schema/recurring-invoices";
 import { recurringInvoiceItems } from "./schema/recurring-invoice-items";
-import { invoiceDeliveryLog } from "./schema/delivery-logs";
 
 export const clientsRelations = relations(clients, ({ many }) => ({
   invoices: many(invoices),
@@ -23,7 +22,6 @@ export const invoicesRelations = relations(invoices, ({ one, many }) => ({
   }),
   items: many(invoiceItems),
   payments: many(payments),
-  deliveryLogs: many(invoiceDeliveryLog),
 }));
 
 export const invoiceItemsRelations = relations(invoiceItems, ({ one }) => ({
@@ -53,12 +51,5 @@ export const recurringInvoiceItemsRelations = relations(recurringInvoiceItems, (
   template: one(recurringInvoices, {
     fields: [recurringInvoiceItems.recurringInvoiceId],
     references: [recurringInvoices.id],
-  }),
-}));
-
-export const invoiceDeliveryLogRelations = relations(invoiceDeliveryLog, ({ one }) => ({
-  invoice: one(invoices, {
-    fields: [invoiceDeliveryLog.invoiceId],
-    references: [invoices.id],
   }),
 }));

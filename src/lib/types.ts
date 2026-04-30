@@ -83,10 +83,10 @@ export const PAYMENT_METHODS = [
 
 export const COMPANY = {
   name: 'FocalDive (Pvt) Ltd',
-  address: 'Kurunegala, North Western Province, Sri Lanka',
-  email: 'devfocaldive@gmail.com',
-  phone: '+94 77 123 4567',
-  website: 'focaldive.com',
+  address: 'Waun Right,\nManalkundru\nPuttalam, Sri Lanka',
+  email: 'accounts@focaldive.io',
+  phone: '+94 77 743 2106',
+  website: 'focaldive.io',
 }
 
 export type Settings = InferSelectModel<typeof settings>

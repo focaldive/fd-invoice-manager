@@ -8,6 +8,13 @@
       "when": 1777361693544,
       "tag": "0000_giant_liz_osborn",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1777530773109,
+      "tag": "0001_faithful_onslaught",
+      "breakpoints": true
     }
   ]
 }

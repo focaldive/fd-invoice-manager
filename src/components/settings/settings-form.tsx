@@ -73,16 +73,17 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsRow
     if (!confirm("Reset all settings to defaults?")) return;
     setForm({
       companyName: "FocalDive (Pvt) Ltd",
-      companyEmail: "devfocaldive@gmail.com",
-      companyPhone: "",
-      companyAddress: "Kurunegala, Sri Lanka",
-      companyWebsite: "",
-      invoicePrefix: "FD-INV",
-      invoiceNumberDigits: 4,
+      companyEmail: "accounts@focaldive.io",
+      companyPhone: "+94 77 743 2106",
+      companyAddress: "Waun Right,\nManalkundru\nPuttalam, Sri Lanka",
+      companyWebsite: "focaldive.io",
+      invoicePrefix: "FD",
+      invoiceNumberDigits: 3,
       defaultCurrency: "LKR",
       defaultTaxPercentage: 0,
-      defaultPaymentTerms: 14,
-      defaultNotes: "Payment is due within 14 days. Bank details will be shared separately.",
+      defaultPaymentTerms: 7,
+      defaultNotes:
+        "Terms:\n1. Please settle the due amount within 3-4 business days.\n2. Services are non-refundable once delivered\n3. Please include the invoice number in your payment reference.\n\nNotes:\nThank you for your business!\nQuestions? Contact us at accounts@focaldive.io",
     });
     toast.info("Settings reset to defaults. Click Save to apply.");
   }
