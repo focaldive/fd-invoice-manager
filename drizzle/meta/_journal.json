@@ -15,6 +15,13 @@
       "when": 1777530773109,
       "tag": "0001_faithful_onslaught",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781266689034,
+      "tag": "0002_bored_randall_flagg",
+      "breakpoints": true
     }
   ]
 }

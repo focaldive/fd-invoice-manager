@@ -22,7 +22,9 @@
       "Bash(npx drizzle-kit *)",
       "Bash(npm run *)",
       "Bash(npx tsx *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(bun --version)",
+      "Bash(git grep *)"
     ]
   }
 }
