@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   description: "Invoice management system for FocalDive (Pvt) Ltd",
 };
 
+// Every route is auth-gated and reads live DB data — render dynamically so the
+// production build never needs a reachable Postgres (important for `docker build`).
+export const dynamic = "force-dynamic";
+
 export default function RootLayout({
   children,
 }: Readonly<{

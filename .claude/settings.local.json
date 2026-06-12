@@ -24,7 +24,8 @@
       "Bash(npx tsx *)",
       "Bash(npm uninstall *)",
       "Bash(bun --version)",
-      "Bash(git grep *)"
+      "Bash(git grep *)",
+      "Bash(docker compose *)"
     ]
   }
 }

@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 const loaderPath = require.resolve('orchids-visual-edits/loader.js');
 
 const nextConfig: NextConfig = {
+  // Emit a self-contained server bundle (.next/standalone) for a slim Docker image
+  output: "standalone",
   images: {
     remotePatterns: [
       {
