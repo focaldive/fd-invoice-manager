@@ -6,9 +6,9 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-admin}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fd1234}
       POSTGRES_DB: ${POSTGRES_DB:-fd_invoice}
-    # Host 5433 → container 5432 (avoids clashing with a local Postgres on 5432)
-    ports:
-      - "5433:5432"
+    # No host port published — the app reaches Postgres over the internal
+    # Docker network at db:5432. To attach a GUI from the host, bind to
+    # localhost on a free port, e.g.:  - "127.0.0.1:5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
