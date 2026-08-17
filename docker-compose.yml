@@ -41,9 +41,11 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-fd1234}@db:5432/${POSTGRES_DB:-fd_invoice}
       NODE_ENV: production
-    # Host 4000 → container 3000 (avoids clashing with a local `npm run dev` on 3000)
+    # Loopback-only: nginx terminates TLS and proxies to 127.0.0.1:4010.
+    # Not published on 0.0.0.0 — the session cookie is Secure in production,
+    # so plain http://host:4010 could not complete a login anyway.
     ports:
-      - "4000:3000"
+      - "127.0.0.1:4010:3000"
     depends_on:
       db:
         condition: service_healthy
