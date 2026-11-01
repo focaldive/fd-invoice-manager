@@ -203,7 +203,7 @@
 /*
  * UI font: SF Pro Rounded. The .otf files are Apple-licensed, so they are kept
  * local only (gitignored in public/fonts/sf-pro-rounded/) and loaded by absolute
- * URL — a missing file just 404s and the stack falls through to Nunito.
+ * URL — a missing file just 404s and the stack falls through to Manrope.
  */
 @font-face {
   font-family: "SF Pro Rounded";
@@ -235,7 +235,7 @@
 }
 
 :root {
-  --font-rounded: "SF Pro Rounded", ui-rounded, var(--font-nunito), ui-sans-serif, system-ui, sans-serif;
+  --font-rounded: "SF Pro Rounded", ui-rounded, var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
