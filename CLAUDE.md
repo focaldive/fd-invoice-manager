@@ -48,6 +48,7 @@ There are no `NEXT_PUBLIC_*` vars — nothing should ship to the client bundle.
   - `/` — Dashboard with revenue metrics and charts
   - `/invoices/` — List, create (`/new`), view (`/[id]`), edit (`/[id]/edit`)
   - `/clients/` — List and detail (`/[id]`)
+  - `/receipts` — Paid invoices as receipts (`RCT-…` numbers, PDF with red PAID stamp)
   - `/recurring` — Manage recurring invoice templates
   - `/settings/` — Company and invoice configuration
   - `/api/auth/login` — POST `{ username, password }` → sets HttpOnly session cookie or 401
@@ -63,7 +64,7 @@ There are no `NEXT_PUBLIC_*` vars — nothing should ship to the client bundle.
   - `auth/credentials.ts` — constant-time username/password compare against env
   - `invoice-numbering.ts` — sequence/abbreviation logic for invoice numbers
 - `src/components/` — App components plus `ui/` directory with shadcn/ui primitives
-  - `app-shell.tsx` — Layout wrapper with top nav and logout button (POSTs to `/api/auth/logout`). No client-side auth gate — middleware handles that.
+  - `app-shell.tsx` — Server wrapper (loads sidebar counts via `server/queries/nav.ts` + session user) around `app-shell-client.tsx` (grouped sidebar, header, user menu/logout). No client-side auth gate — middleware handles that.
   - `invoice-form.tsx` — Shared create/edit form
 - `src/lib/` — browser-safe only. No DB clients, no server secrets.
   - `types.ts` — Domain DTOs (`Client`, `Invoice`, `InvoiceItem`, `Payment`, `RecurringInvoice`, `RecurringInvoiceItem`, `Settings`), constants (`CATEGORIES`, `STATUSES`, `CURRENCIES`, `PAYMENT_METHODS`, `COMPANY`), and helpers (`formatCurrency`, `getClientAbbreviation`, `buildInvoiceNumber`, `computeNextGenerationDate`, `getStatusInfo`, `getCategoryLabel`)
@@ -98,14 +99,17 @@ Relationships: invoices reference clients via `client_id`; `invoice_items` and `
 A `RecurringInvoice` is a template with `day_of_month` (1–28) and `next_generation_date`. `computeNextGenerationDate(dayOfMonth)` advances to next month if today is past the day. Generation itself is not yet automated server-side — the `/recurring` UI manages templates. Generated invoices are linked via `recurring_invoice_id` and flagged with `is_auto_generated = true`.
 
 ### Styling
-Dark theme by default. Fonts: **Switzer** (local variable woff2 at `src/app/fonts/Switzer-Variable.woff2`, var `--font-switzer`) and **JetBrains Mono** (var `--font-jetbrains-mono`). Primary accent color: `#09c880`. Theme variables live in `src/app/globals.css`. `next-themes` is available for theme switching.
+Dark-only, AlignUI-styled: AlignUI's dark neutral palette, 10px control radius, focus halos and FancyButton sheen (`fancy-sheen` utility) are ported onto the shadcn components in `src/components/ui/` (APIs unchanged). Fonts: **SF Pro Rounded** via `@font-face` in `globals.css` — the Apple-licensed OTFs are **local only** (gitignored `public/fonts/sf-pro-rounded/`, never commit: repo is public); **Nunito** (`--font-nunito`, on `<html>`) is the fallback when they're absent and **JetBrains Mono** (`--font-jetbrains-mono`). Primary accent: Acid Green `#9bf019` (Toxic Green `#4bd200` as secondary chart colour; logo keeps its own green). Theme tokens live in `src/app/globals.css`.
+
+### Charts
+Bklit UI (`@bklit` shadcn registry) — source installed in `src/components/charts/`; project skills in `.claude/skills/bklit-ui*`. Install more with `npx shadcn@latest add @bklit/<item>` (move `bun.lock` aside first or shadcn tries to use bun). Chart tokens (`--chart-*`) are dark-only in `globals.css`.
 
 ### Currencies
 `CURRENCIES` in `src/lib/types.ts`: LKR, USD, AED, QAR, SAR, GBP, EUR, AUD, INR, SGD. `formatCurrency` renders symbol-before for `$ £ € ₹` and any `$`-suffixed code (A$, S$); everything else gets `CODE 1,234.56` form.
 
 ### Key Libraries
 - `react-hook-form` + `zod` are installed but most forms use manual `useState`
-- `recharts` for dashboard charts
+- Bklit UI charts (`src/components/charts/`, d3 + motion) for the dashboard; `recharts` remains only behind the unused shadcn `ui/chart.tsx` wrapper
 - `sonner` for toast notifications
 - `framer-motion` for animations
 - `date-fns` + `react-day-picker` for date handling
