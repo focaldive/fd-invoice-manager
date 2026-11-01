@@ -22,15 +22,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart } from "@/components/charts/bar-chart";
+import { Bar } from "@/components/charts/bar";
+import { BarXAxis } from "@/components/charts/bar-x-axis";
+import { Grid } from "@/components/charts/grid";
+import { YAxis } from "@/components/charts/y-axis";
+import { ChartTooltip } from "@/components/charts/tooltip";
 import { cn } from "@/lib/utils";
 import { CATEGORIES, CURRENCIES, formatCurrency, getStatusInfo } from "@/lib/types";
 import type { getDashboardInvoices } from "@/server/queries/invoices";
@@ -113,15 +110,15 @@ export function DashboardView({
   return (
     <div className="space-y-10">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Dashboard</h1>
         <div className="flex flex-wrap gap-2">
           <Link href="/invoices/new">
-            <Button size="sm" className="h-9 rounded-full">
+            <Button size="sm" className="h-9">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> New Invoice
             </Button>
           </Link>
           <Select value={currency} onValueChange={(v) => updateParam("currency", v, "LKR")}>
-            <SelectTrigger className="w-[100px] h-9 text-xs font-mono bg-secondary border-border rounded-full">
+            <SelectTrigger className="w-[100px] h-9 text-xs font-mono bg-secondary border-border">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -133,7 +130,7 @@ export function DashboardView({
             </SelectContent>
           </Select>
           <Select value={category} onValueChange={(v) => updateParam("category", v, "all")}>
-            <SelectTrigger className="w-[180px] h-9 text-xs bg-secondary border-border rounded-full">
+            <SelectTrigger className="w-[180px] h-9 text-xs bg-secondary border-border">
               <SelectValue placeholder="All Categories" />
             </SelectTrigger>
             <SelectContent>
@@ -161,7 +158,7 @@ export function DashboardView({
           </p>
           <div className="mt-2 flex items-center gap-1.5">
             <Select value={String(revenueMonth)} onValueChange={(v) => setRevenueMonth(Number(v))}>
-              <SelectTrigger className="h-7 w-[90px] text-[11px] font-mono bg-secondary border-border rounded-full px-2.5">
+              <SelectTrigger className="h-7 w-[90px] text-[11px] font-mono bg-secondary border-border px-2.5">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -174,7 +171,7 @@ export function DashboardView({
               </SelectContent>
             </Select>
             <Select value={String(revenueYear)} onValueChange={(v) => setRevenueYear(Number(v))}>
-              <SelectTrigger className="h-7 w-[75px] text-[11px] font-mono bg-secondary border-border rounded-full px-2.5">
+              <SelectTrigger className="h-7 w-[75px] text-[11px] font-mono bg-secondary border-border px-2.5">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -242,7 +239,7 @@ export function DashboardView({
                 <ChevronLeft className="h-4 w-4" />
               </button>
               <Select value={String(chartYear)} onValueChange={(v) => setChartYear(Number(v))}>
-                <SelectTrigger className="h-7 w-[75px] text-[11px] font-mono bg-secondary border-border rounded-full px-2.5">
+                <SelectTrigger className="h-7 w-[75px] text-[11px] font-mono bg-secondary border-border px-2.5">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,41 +259,37 @@ export function DashboardView({
               </button>
             </div>
           </div>
-          <div className="h-[350px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyRevenue} barSize={28}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="month"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fontFamily: "var(--font-jetbrains-mono)", fill: "var(--muted-foreground)" }}
-                />
-                <YAxis
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fontFamily: "var(--font-jetbrains-mono)", fill: "var(--muted-foreground)" }}
-                  tickFormatter={(v) => {
-                    const sym = CURRENCIES.find((c) => c.value === currency)?.symbol || currency;
-                    return `${sym}${(v / 1000).toFixed(0)}k`;
-                  }}
-                />
-                <Tooltip
-                  formatter={(value: number) => [formatCurrency(value, currency), "Revenue"]}
-                  cursor={{ fill: "var(--accent)" }}
-                  contentStyle={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "10px",
-                    fontSize: "12px",
-                    fontFamily: "var(--font-jetbrains-mono)",
-                    color: "var(--foreground)",
-                  }}
-                />
-                <Bar dataKey="amount" fill="var(--primary)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Bklit bar chart — composed: grid → bars → axes → tooltip */}
+          <BarChart
+            key={`${chartYear}-${currency}`}
+            data={monthlyRevenue}
+            xDataKey="month"
+            aspectRatio="5 / 2"
+            barGap={0.35}
+            margin={{ left: 48 }}
+            className="w-full"
+          >
+            <Grid horizontal numTicksRows={4} />
+            <Bar dataKey="amount" fill="var(--chart-1)" lineCap={6} fadedOpacity={0.35} />
+            <YAxis
+              numTicks={4}
+              formatValue={(v) => {
+                const sym = CURRENCIES.find((c) => c.value === currency)?.symbol || currency;
+                return v >= 1000 ? `${sym}${(v / 1000).toFixed(0)}k` : `${sym}${v}`;
+              }}
+            />
+            <BarXAxis showAllLabels />
+            <ChartTooltip
+              showDatePill={false}
+              rows={(point) => [
+                {
+                  color: "var(--chart-1)",
+                  label: `Revenue · ${point.month} ${chartYear}`,
+                  value: formatCurrency(Number(point.amount), currency),
+                },
+              ]}
+            />
+          </BarChart>
         </div>
 
         <div className="lg:col-span-2 rounded-xl border border-border bg-card p-6">
