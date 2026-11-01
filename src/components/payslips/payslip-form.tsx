@@ -295,7 +295,7 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{isEdit ? "Edit Payslip" : "New Payslip"}</h1>
+          <h1 className="text-2xl font-medium tracking-tight">{isEdit ? "Edit Payslip" : "New Payslip"}</h1>
           {slipNumber && <p className="text-sm font-mono text-muted-foreground mt-0.5">{slipNumber}</p>}
         </div>
       </div>
@@ -404,7 +404,7 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Earnings & Deductions</h3>
-              <Button variant="outline" size="sm" onClick={addItem} className="h-8 text-xs rounded-full cursor-pointer">
+              <Button variant="outline" size="sm" onClick={addItem} className="h-8 text-xs cursor-pointer">
                 <Plus className="mr-1 h-3.5 w-3.5" /> Add Item
               </Button>
             </div>
@@ -530,7 +530,7 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
                 <span className="text-xl font-semibold font-mono">{formatAmount(netPay)}</span>
               </div>
             </div>
-            <Button className="w-full h-10 rounded-full" onClick={handleSave} disabled={saving}>
+            <Button className="w-full h-10" onClick={handleSave} disabled={saving}>
               <Save className="mr-1.5 h-3.5 w-3.5" />
               {saving ? "Saving..." : isEdit ? "Update Payslip" : "Create Payslip"}
             </Button>
@@ -554,10 +554,10 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
             </div>
           </DialogHeader>
           <div className="flex flex-col gap-2 pt-4">
-            <Button variant="outline" onClick={handleDiscardAndLeave} className="w-full rounded-full text-destructive hover:text-destructive">
+            <Button variant="outline" onClick={handleDiscardAndLeave} className="w-full text-destructive hover:text-destructive">
               Discard & Leave
             </Button>
-            <Button variant="ghost" onClick={() => setUnsavedDialog(false)} className="w-full rounded-full">
+            <Button variant="ghost" onClick={() => setUnsavedDialog(false)} className="w-full">
               Continue Editing
             </Button>
           </div>

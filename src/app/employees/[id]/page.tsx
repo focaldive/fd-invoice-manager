@@ -32,7 +32,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight">{employee.name}</h1>
+              <h1 className="text-2xl font-medium tracking-tight">{employee.name}</h1>
               <span className="text-sm font-mono text-muted-foreground">{employee.employeeNumber}</span>
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-sm text-muted-foreground">
@@ -63,7 +63,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <div className="px-6 py-4 border-b border-border flex items-center justify-between">
             <h3 className="text-sm font-semibold">Payslip History</h3>
             <Link href="/payslips/new">
-              <Button size="sm" variant="outline" className="h-8 rounded-full text-xs">New Payslip</Button>
+              <Button size="sm" variant="outline" className="h-8 text-xs">New Payslip</Button>
             </Link>
           </div>
           <div className="p-3">

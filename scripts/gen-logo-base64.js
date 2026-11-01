@@ -1,15 +1,56 @@
+// Generates raster logo assets from src/app/icon.svg (FocalDive emblem on a dark tile).
+//
+//   node scripts/gen-logo-base64.js
+//
+// Outputs:
+//   - stdout: data:image/png;base64,… (200×200) → paste into LOGO_PNG_DATA_URL in src/lib/pdf.ts
+//   - src/app/apple-icon.png (180×180, iOS home-screen icon)
+//   - src/app/favicon.ico    (32×32 PNG-in-ICO, for clients that request /favicon.ico)
+//
+// The tile keeps the Acid Green emblem readable on white PDFs and light browser tabs.
+const fs = require("fs");
+const path = require("path");
 const sharp = require("sharp");
 
-// Uses the exact same colors as public/logo.svg (#212d34 dark + #09c880 green)
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="200" height="200"><path fill="#212d34" d="M950.09,263.49,813.67,184.73V422l-69.09,39.91L521.27,590.81,335.42,698.1V934.86l34.23,19.82L539.92,1053H540L983.73,796.79V282.89ZM813.67,698.32l-69.09,39.91L521.27,867.16V787.44L744.58,658.51l69.09-39.91Z"/><polygon fill="#09c880" points="710.78 125.32 521.27 234.74 335.42 342.04 266.33 381.9 96.27 480.11 96.27 283.47 266.33 185.26 335.42 145.41 521.27 38.11 540.5 27 710.78 125.32"/><polygon fill="#09c880" points="744.58 185.53 744.58 382.16 521.27 511.09 335.42 618.39 266.33 658.25 96.27 756.46 96.27 559.82 266.33 461.61 335.42 421.75 521.27 314.46 744.58 185.53"/><polygon fill="#09c880" points="266.33 737.96 266.33 895 130.34 816.51 266.33 737.96"/></svg>`;
+const root = path.join(__dirname, "..");
+const svg = fs.readFileSync(path.join(root, "src/app/icon.svg"));
 
-// Flatten to white background (removes alpha channel) for jsPDF compatibility
-sharp(Buffer.from(svg))
-  .resize(200, 200)
-  .flatten({ background: { r: 255, g: 255, b: 255 } })
-  .png({ compressionLevel: 9 })
-  .toBuffer()
-  .then((buf) => {
-    console.log("data:image/png;base64," + buf.toString("base64"));
-  })
-  .catch((err) => console.error(err));
+/** Wrap a single PNG in a minimal ICO container (supported by all modern browsers). */
+function pngToIco(png, size) {
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // reserved
+  header.writeUInt16LE(1, 2); // type: icon
+  header.writeUInt16LE(1, 4); // image count
+  const entry = Buffer.alloc(16);
+  entry.writeUInt8(size >= 256 ? 0 : size, 0);
+  entry.writeUInt8(size >= 256 ? 0 : size, 1);
+  entry.writeUInt8(0, 2); // palette
+  entry.writeUInt8(0, 3); // reserved
+  entry.writeUInt16LE(1, 4); // colour planes
+  entry.writeUInt16LE(32, 6); // bits per pixel
+  entry.writeUInt32LE(png.length, 8);
+  entry.writeUInt32LE(6 + 16, 12); // data offset
+  return Buffer.concat([header, entry, png]);
+}
+
+async function main() {
+  // PDF logo: flatten onto white (jsPDF has no alpha for PNG corners)
+  const pdfPng = await sharp(svg, { density: 300 })
+    .resize(200, 200)
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+
+  const apple = await sharp(svg, { density: 300 }).resize(180, 180).png().toBuffer();
+  fs.writeFileSync(path.join(root, "src/app/apple-icon.png"), apple);
+
+  const fav = await sharp(svg, { density: 300 }).resize(32, 32).png().toBuffer();
+  fs.writeFileSync(path.join(root, "src/app/favicon.ico"), pngToIco(fav, 32));
+
+  process.stdout.write("data:image/png;base64," + pdfPng.toString("base64"));
+}
+
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

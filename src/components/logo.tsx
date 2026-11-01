@@ -1,32 +1,37 @@
+// FocalDive emblem (light / Acid Green variant) — source: light_emblem.svg.
+// Also used for public/logo.svg, src/app/icon.svg (favicon) and the PDF logo
+// (scripts/gen-logo-base64.js). Keep them in sync if the mark changes.
+
+const EMBLEM_VIEWBOX = "0 0 888 1026";
+const EMBLEM_FILL = "#9BF019";
+const EMBLEM_PATHS = [
+  "M853.82 236.49L717.4 157.73V395L648.31 434.91L425 563.81L239.15 671.1V907.86L273.38 927.68L443.65 1026H443.73L887.46 769.79V255.89L853.82 236.49ZM717.4 671.32L648.31 711.23L425 840.16V760.44L648.31 631.51L717.4 591.6V671.32Z",
+  "M614.51 98.32L425 207.74L239.15 315.04L170.06 354.9L0 453.11V256.47L170.06 158.26L239.15 118.41L425 11.11L444.23 0L614.51 98.32Z",
+  "M648.31 158.53V355.16L425 484.09L239.15 591.39L170.06 631.25L0 729.46V532.82L170.06 434.61L239.15 394.75L425 287.46L648.31 158.53Z",
+  "M170.06 710.96V868L34.0698 789.51L170.06 710.96Z",
+];
+
+/** Square box of `size` px; the (slightly taller than wide) emblem is centred inside. */
 export function FocalDiveLogo({ className = "", size = 36 }: { className?: string; size?: number }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 1080 1080"
+      viewBox={EMBLEM_VIEWBOX}
       width={size}
       height={size}
       className={className}
+      fill="none"
+      role="img"
+      aria-label="FocalDive"
     >
-      <path
-        fill="#ffffff"
-        d="M950.09,263.49,813.67,184.73V422l-69.09,39.91L521.27,590.81,335.42,698.1V934.86l34.23,19.82L539.92,1053H540L983.73,796.79V282.89ZM813.67,698.32l-69.09,39.91L521.27,867.16V787.44L744.58,658.51l69.09-39.91Z"
-      />
-      <polygon
-        fill="#09c880"
-        points="710.78 125.32 521.27 234.74 335.42 342.04 266.33 381.9 96.27 480.11 96.27 283.47 266.33 185.26 335.42 145.41 521.27 38.11 540.5 27 710.78 125.32"
-      />
-      <polygon
-        fill="#09c880"
-        points="744.58 185.53 744.58 382.16 521.27 511.09 335.42 618.39 266.33 658.25 96.27 756.46 96.27 559.82 266.33 461.61 335.42 421.75 521.27 314.46 744.58 185.53"
-      />
-      <polygon
-        fill="#09c880"
-        points="266.33 737.96 266.33 895 130.34 816.51 266.33 737.96"
-      />
+      {EMBLEM_PATHS.map((d) => (
+        <path key={d} d={d} fill={EMBLEM_FILL} />
+      ))}
     </svg>
-  )
+  );
 }
 
-// Base64-encoded PNG version for PDF generation (jsPDF can't render SVG)
-// We'll convert the SVG to a data URL for the PDF
-export const FOCALDIVE_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" width="120" height="120"><path fill="#212d34" d="M950.09,263.49,813.67,184.73V422l-69.09,39.91L521.27,590.81,335.42,698.1V934.86l34.23,19.82L539.92,1053H540L983.73,796.79V282.89ZM813.67,698.32l-69.09,39.91L521.27,867.16V787.44L744.58,658.51l69.09-39.91Z"/><polygon fill="#09c880" points="710.78 125.32 521.27 234.74 335.42 342.04 266.33 381.9 96.27 480.11 96.27 283.47 266.33 185.26 335.42 145.41 521.27 38.11 540.5 27 710.78 125.32"/><polygon fill="#09c880" points="744.58 185.53 744.58 382.16 521.27 511.09 335.42 618.39 266.33 658.25 96.27 756.46 96.27 559.82 266.33 461.61 335.42 421.75 521.27 314.46 744.58 185.53"/><polygon fill="#09c880" points="266.33 737.96 266.33 895 130.34 816.51 266.33 737.96"/></svg>`
+/** Standalone SVG markup of the emblem (e.g. for emails / server-rendered HTML). */
+export const FOCALDIVE_LOGO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${EMBLEM_VIEWBOX}" width="104" height="120" fill="none">${EMBLEM_PATHS.map(
+  (d) => `<path d="${d}" fill="${EMBLEM_FILL}"/>`,
+).join("")}</svg>`;

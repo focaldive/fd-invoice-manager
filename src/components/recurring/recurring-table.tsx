@@ -68,11 +68,11 @@ export function RecurringTable({ templates }: { templates: Template[] }) {
       <div className="space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Recurring</h1>
+            <h1 className="text-2xl font-medium tracking-tight">Recurring</h1>
             <p className="text-sm text-muted-foreground mt-1">Manage recurring invoice templates</p>
           </div>
           <Link href="/invoices/new">
-            <Button size="sm" className="h-9 rounded-full">
+            <Button size="sm" className="h-9">
               <Plus className="mr-1.5 h-3.5 w-3.5" /> New Invoice
             </Button>
           </Link>

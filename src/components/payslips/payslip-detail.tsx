@@ -111,7 +111,7 @@ export function PayslipDetail({ payslip }: { payslip: FullPayslip }) {
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl sm:text-3xl font-semibold tracking-tight font-mono">{payslip.slipNumber}</h1>
+                <h1 className="text-xl sm:text-2xl font-medium tracking-tight font-mono">{payslip.slipNumber}</h1>
                 <Badge
                   className={cn(
                     "text-[11px] font-medium px-2.5 py-0.5 rounded-full border-0",
@@ -135,23 +135,23 @@ export function PayslipDetail({ payslip }: { payslip: FullPayslip }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="h-9 rounded-full">
+            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="h-9">
               <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
             </Button>
             {payslip.status === "draft" && (
               <>
                 <Link href={`/payslips/${payslip.id}/edit`}>
-                  <Button variant="outline" size="sm" className="h-9 rounded-full">
+                  <Button variant="outline" size="sm" className="h-9">
                     <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
                   </Button>
                 </Link>
-                <Button size="sm" onClick={() => setConfirmPaid(true)} className="h-9 rounded-full">
+                <Button size="sm" onClick={() => setConfirmPaid(true)} className="h-9">
                   <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
                 </Button>
               </>
             )}
             {payslip.status === "paid" && (
-              <Button variant="outline" size="sm" onClick={handleSetDraft} disabled={isPending} className="h-9 rounded-full">
+              <Button variant="outline" size="sm" onClick={handleSetDraft} disabled={isPending} className="h-9">
                 <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Move to Draft
               </Button>
             )}
@@ -160,7 +160,7 @@ export function PayslipDetail({ payslip }: { payslip: FullPayslip }) {
               size="sm"
               onClick={handleDelete}
               disabled={isPending}
-              className="h-9 rounded-full text-destructive hover:text-destructive"
+              className="h-9 text-destructive hover:text-destructive"
             >
               <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Delete
             </Button>

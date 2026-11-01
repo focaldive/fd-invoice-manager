@@ -213,8 +213,8 @@ export function EmployeesTable({ employees }: { employees: EmployeeRow[] }) {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Employees</h1>
-        <Button size="sm" onClick={openCreate} className="h-9 rounded-full">
+        <h1 className="text-2xl font-medium tracking-tight">Employees</h1>
+        <Button size="sm" onClick={openCreate} className="h-9">
           <Plus className="mr-1.5 h-3.5 w-3.5" /> Add Employee
         </Button>
       </div>
@@ -225,7 +225,7 @@ export function EmployeesTable({ employees }: { employees: EmployeeRow[] }) {
           placeholder="Search by name, emp no, or department..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9 h-9 text-sm bg-secondary border-border rounded-full"
+          className="pl-9 h-9 text-sm bg-secondary border-border"
         />
       </div>
 

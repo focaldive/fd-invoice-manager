@@ -70,7 +70,6 @@ export default function LoginPage() {
                   autoComplete="username"
                   autoFocus
                   required
-                  className="rounded-full"
                 />
               </div>
 
@@ -84,11 +83,10 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
                   required
-                  className="rounded-full"
                 />
               </div>
 
-              <Button type="submit" variant={"outline"} className="w-full rounded-full border border-primary hover:bg-primary hover:text-black" disabled={loading}>
+              <Button type="submit" size="lg" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Sign in
               </Button>

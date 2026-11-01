@@ -91,12 +91,12 @@ export function SettingsForm({ initialSettings }: { initialSettings: SettingsRow
   return (
     <div className="space-y-10 ">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Settings</h1>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset} className="h-9 rounded-full">
+          <Button variant="outline" size="sm" onClick={handleReset} className="h-9">
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset
           </Button>
-          <Button size="sm" onClick={handleSave} disabled={isPending} className="h-9 rounded-full">
+          <Button size="sm" onClick={handleSave} disabled={isPending} className="h-9">
             <Save className="mr-1.5 h-3.5 w-3.5" /> {isPending ? "Saving..." : "Save Changes"}
           </Button>
         </div>

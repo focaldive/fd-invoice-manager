@@ -45,3 +45,6 @@ next-env.d.ts
 settings.local.json
 
 /docs
+# SF Pro Rounded is Apple-licensed — keep local only, never commit (repo is public).
+# Drop the .otf files here to get it; otherwise the UI falls back to Nunito.
+/public/fonts/sf-pro-rounded/

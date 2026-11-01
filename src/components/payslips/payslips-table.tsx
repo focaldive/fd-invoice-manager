@@ -131,17 +131,17 @@ export function PayslipsTable({ payslips, settings }: { payslips: Payslips; sett
   return (
     <>
       <div className="space-y-8">
-        <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Payslips</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Payslips</h1>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-0 border border-border rounded-full p-1 overflow-x-auto">
+          <div className="flex items-center gap-0 rounded-[10px] bg-card p-1 shadow-[0_0_0_1px_var(--border)] overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setStatusTab(tab.key)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap sm:px-5 sm:text-sm",
-                  statusTab === tab.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap sm:px-5 sm:text-sm",
+                  statusTab === tab.key ? "bg-background text-foreground shadow-[0_1px_2px_0_rgba(0,0,0,0.4),0_0_0_1px_var(--input)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {tab.label}
@@ -151,7 +151,7 @@ export function PayslipsTable({ payslips, settings }: { payslips: Payslips; sett
 
           <div className="flex items-center gap-3">
             <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-              <SelectTrigger className="h-9 w-[160px] text-xs bg-secondary border-border rounded-full">
+              <SelectTrigger className="h-9 w-[160px] text-xs bg-secondary border-border">
                 <SelectValue placeholder="All Employees" />
               </SelectTrigger>
               <SelectContent>
@@ -164,16 +164,16 @@ export function PayslipsTable({ payslips, settings }: { payslips: Payslips; sett
               </SelectContent>
             </Select>
             <Link href="/payslips/new">
-              <Button size="sm" className="h-9 rounded-full">
+              <Button size="sm" className="h-9">
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New Payslip
               </Button>
             </Link>
-            <div className="flex items-center border border-border rounded-full p-1">
+            <div className="flex items-center rounded-[10px] bg-card p-1 shadow-[0_0_0_1px_var(--border)]">
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                  viewMode === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === "list" ? "bg-background text-foreground shadow-[0_1px_2px_0_rgba(0,0,0,0.4),0_0_0_1px_var(--input)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <List className="h-3.5 w-3.5" /> List
@@ -181,8 +181,8 @@ export function PayslipsTable({ payslips, settings }: { payslips: Payslips; sett
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                  viewMode === "grid" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === "grid" ? "bg-background text-foreground shadow-[0_1px_2px_0_rgba(0,0,0,0.4),0_0_0_1px_var(--input)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <LayoutGrid className="h-3.5 w-3.5" /> Grid
@@ -235,7 +235,7 @@ export function PayslipsTable({ payslips, settings }: { payslips: Payslips; sett
                       <p className="text-lg font-medium text-primary group-hover:underline">{p.employee?.name || "No employee"}</p>
                       <p className="text-xs text-muted-foreground">{getMonthLabel(p.payPeriodMonth)} {p.payPeriodYear}</p>
                     </div>
-                    <p className="text-xl font-semibold font-mono tracking-tighter">
+                    <p className="text-xl font-semibold font-mono tracking-tight">
                       {formatCurrency(Number(p.netPay), p.currency)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">

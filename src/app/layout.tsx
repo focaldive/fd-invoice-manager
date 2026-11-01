@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import { JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono, Nunito } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { VisualEditsMessenger } from "orchids-visual-edits";
 import { NavigationGuardProvider } from "@/lib/navigation-guard";
 
-const switzer = localFont({
-  src: "./fonts/Switzer-Variable.woff2",
-  variable: "--font-switzer",
+// UI font: SF Pro Rounded via @font-face in globals.css (files are local-only,
+// gitignored in public/fonts/sf-pro-rounded/). Nunito is the fallback when absent.
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
   display: "swap",
-  weight: "100 900",
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -34,9 +34,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // Font CSS variables live on <html> so :root-level tokens (--font-rounded) can resolve them.
+    <html lang="en" className={`${nunito.variable} ${jetbrainsMono.variable}`}>
       <body
-        className={`${switzer.variable} ${switzer.className} ${jetbrainsMono.variable} antialiased`}
+        className="font-sans antialiased"
       >
         <NavigationGuardProvider>
           {children}
