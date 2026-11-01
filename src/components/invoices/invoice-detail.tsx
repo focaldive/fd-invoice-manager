@@ -52,15 +52,17 @@ import {
   XCircle,
   Send,
   RotateCcw,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
-import { generateInvoicePDF } from "@/lib/pdf";
+import { generateInvoicePDF, type PDFVariant } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
 import {
   PAYMENT_METHODS,
   formatCurrency,
   getCategoryLabel,
   getStatusInfo,
+  isInvoiceEditable,
 } from "@/lib/types";
 import { setInvoiceStatus } from "@/server/actions/invoices";
 import { recordPayment } from "@/server/actions/payments";
@@ -141,11 +143,13 @@ export function InvoiceDetail({
     });
   }
 
-  async function handleDownloadPDF() {
+  async function handleDownloadPDF(variant: PDFVariant) {
     try {
       await generateInvoicePDF(
         { ...invoice, items, client: invoice.client ?? undefined },
         settings,
+        "download",
+        variant,
       );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate PDF");
@@ -188,7 +192,7 @@ export function InvoiceDetail({
             </Link>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl sm:text-3xl font-semibold tracking-tight font-mono">
+                <h1 className="text-xl sm:text-2xl font-medium tracking-tight font-mono">
                   {invoice.invoiceNumber}
                 </h1>
                 <Badge
@@ -225,30 +229,35 @@ export function InvoiceDetail({
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="h-9 rounded-full">
-              <Download className="mr-1.5 h-3.5 w-3.5" /> PDF
+            <Button variant="outline" size="sm" onClick={() => handleDownloadPDF("invoice")} className="h-9">
+              <Download className="mr-1.5 h-3.5 w-3.5" /> {invoice.status === "paid" ? "Invoice PDF" : "PDF"}
             </Button>
-            {invoice.status === "draft" && (
-              <>
-                <Link href={`/invoices/${invoice.id}/edit`}>
-                  <Button variant="outline" size="sm" className="h-9 rounded-full">
-                    <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
-                  </Button>
-                </Link>
-                <Button size="sm" onClick={handleMarkAsSent} disabled={isPending} className="h-9 rounded-full">
-                  <Send className="mr-1.5 h-3.5 w-3.5" /> Mark as Sent
+            {invoice.status === "paid" && (
+              <Button variant="outline" size="sm" onClick={() => handleDownloadPDF("receipt")} className="h-9">
+                <Receipt className="mr-1.5 h-3.5 w-3.5" /> Receipt
+              </Button>
+            )}
+            {isInvoiceEditable(invoice.status) && (
+              <Link href={`/invoices/${invoice.id}/edit`}>
+                <Button variant="outline" size="sm" className="h-9">
+                  <Pencil className="mr-1.5 h-3.5 w-3.5" /> Edit
                 </Button>
-              </>
+              </Link>
+            )}
+            {invoice.status === "draft" && (
+              <Button size="sm" onClick={handleMarkAsSent} disabled={isPending} className="h-9">
+                <Send className="mr-1.5 h-3.5 w-3.5" /> Mark as Sent
+              </Button>
             )}
             {["sent", "overdue"].includes(invoice.status) && (
-              <Button size="sm" onClick={() => setConfirmPaid(true)} className="h-9 rounded-full">
+              <Button size="sm" onClick={() => setConfirmPaid(true)} className="h-9">
                 <CheckCircle className="mr-1.5 h-3.5 w-3.5" /> Mark as Paid
               </Button>
             )}
             {["paid", "cancelled"].includes(invoice.status) && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 rounded-full">
+                  <Button variant="outline" size="sm" className="h-9">
                     <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Change Status
                   </Button>
                 </DropdownMenuTrigger>
@@ -277,7 +286,7 @@ export function InvoiceDetail({
                 size="sm"
                 onClick={handleCancel}
                 disabled={isPending}
-                className="h-9 rounded-full text-destructive hover:text-destructive"
+                className="h-9 text-destructive hover:text-destructive"
               >
                 <XCircle className="mr-1.5 h-3.5 w-3.5" /> Cancel
               </Button>

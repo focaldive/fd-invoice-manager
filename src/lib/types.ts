@@ -68,6 +68,35 @@ export const STATUSES = [
   { value: 'cancelled', label: 'Cancelled', color: 'bg-amber-100 text-amber-700' },
 ] as const
 
+// Invoices stay editable until they are settled (paid) or voided (cancelled).
+export const EDITABLE_INVOICE_STATUSES = ['draft', 'sent', 'overdue'] as const
+export type EditableInvoiceStatus = (typeof EDITABLE_INVOICE_STATUSES)[number]
+
+export function isInvoiceEditable(status: string): status is EditableInvoiceStatus {
+  return (EDITABLE_INVOICE_STATUSES as readonly string[]).includes(status)
+}
+
+// ── Receipts ──────────────────────────────────────────────
+// A receipt is a paid invoice. It reuses the invoice's sequence with an RCT
+// prefix so the two documents are easy to cross-reference:
+//   FD-ZZCW-2611-001  →  RCT-ZZCW-2611-001
+export function getReceiptNumber(invoiceNumber: string): string {
+  return invoiceNumber.replace(/^[^-]+-/, 'RCT-')
+}
+
+/** Date the invoice was settled: latest payment if any, else last update. */
+export function getPaidDate(invoice: {
+  updatedAt: Date | string
+  payments?: { paymentDate: string }[] | null
+}): string {
+  const latestPayment = (invoice.payments ?? [])
+    .map((p) => p.paymentDate)
+    .sort()
+    .at(-1)
+  if (latestPayment) return latestPayment
+  return new Date(invoice.updatedAt).toISOString()
+}
+
 export const CURRENCIES = [
   { value: 'LKR', label: 'LKR - Sri Lankan Rupee', symbol: 'LKR' },
   { value: 'USD', label: 'USD - US Dollar', symbol: '$' },

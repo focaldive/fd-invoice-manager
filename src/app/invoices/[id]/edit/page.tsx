@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isInvoiceEditable } from "@/lib/types";
 import { AppShell } from "@/components/app-shell";
 import { InvoiceForm } from "@/components/invoices/invoice-form";
 import { getInvoiceFull } from "@/server/queries/invoices";
@@ -14,6 +15,7 @@ export default async function EditInvoicePage({ params }: { params: Promise<{ id
   ]);
 
   if (!invoice) notFound();
+  if (!isInvoiceEditable(invoice.status)) redirect(`/invoices/${id}`);
 
   return (
     <AppShell>

@@ -48,11 +48,12 @@ import {
   LayoutGrid,
   List,
   RotateCcw,
+  Receipt,
 } from "lucide-react";
 import { toast } from "sonner";
-import { generateInvoicePDF } from "@/lib/pdf";
+import { generateInvoicePDF, type PDFVariant } from "@/lib/pdf";
 import { cn } from "@/lib/utils";
-import { formatCurrency, getCategoryLabel, getStatusInfo } from "@/lib/types";
+import { formatCurrency, getCategoryLabel, getStatusInfo, isInvoiceEditable } from "@/lib/types";
 import {
   setInvoiceStatus,
   duplicateInvoice,
@@ -118,10 +119,15 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
     });
   }
 
-  async function handleDownloadPdf(invoice: Invoice) {
+  async function handleDownloadPdf(invoice: Invoice, variant: PDFVariant = "invoice") {
     try {
       const items = await getInvoiceItemsForPdf(invoice.id);
-      await generateInvoicePDF({ ...invoice, items, client: invoice.client ?? undefined }, settings);
+      await generateInvoicePDF(
+        { ...invoice, items, client: invoice.client ?? undefined },
+        settings,
+        "download",
+        variant,
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate PDF");
     }
@@ -145,17 +151,17 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
   return (
     <>
       <div className="space-y-8">
-        <h1 className="text-3xl sm:text-5xl font-semibold tracking-tight">Invoices</h1>
+        <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-0 border border-border rounded-full p-1 overflow-x-auto">
+          <div className="flex items-center gap-0 rounded-[10px] bg-card p-1 shadow-[0_0_0_1px_var(--border)] overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.key}
                 onClick={() => setStatusTab(tab.key)}
                 className={cn(
-                  "px-3 py-1.5 text-xs font-medium rounded-full transition-colors whitespace-nowrap sm:px-5 sm:text-sm",
-                  statusTab === tab.key ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap sm:px-5 sm:text-sm",
+                  statusTab === tab.key ? "bg-background text-foreground shadow-[0_1px_2px_0_rgba(0,0,0,0.4),0_0_0_1px_var(--input)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {tab.label}
@@ -165,7 +171,7 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
 
           <div className="flex items-center gap-3">
             <Select value={clientFilter} onValueChange={setClientFilter}>
-              <SelectTrigger className="h-9 w-[160px] text-xs bg-secondary border-border rounded-full">
+              <SelectTrigger className="h-9 w-[160px] text-xs bg-secondary border-border">
                 <SelectValue placeholder="All Clients" />
               </SelectTrigger>
               <SelectContent>
@@ -178,16 +184,16 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
               </SelectContent>
             </Select>
             <Link href="/invoices/new">
-              <Button size="sm" className="h-9 rounded-full">
+              <Button size="sm" className="h-9">
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> New Invoice
               </Button>
             </Link>
-            <div className="flex items-center border border-border rounded-full p-1">
+            <div className="flex items-center rounded-[10px] bg-card p-1 shadow-[0_0_0_1px_var(--border)]">
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                  viewMode === "list" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === "list" ? "bg-background text-foreground shadow-[0_1px_2px_0_rgba(0,0,0,0.4),0_0_0_1px_var(--input)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <List className="h-3.5 w-3.5" /> List
@@ -195,8 +201,8 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors",
-                  viewMode === "grid" ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground",
+                  "flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-md transition-colors",
+                  viewMode === "grid" ? "bg-background text-foreground shadow-[0_1px_2px_0_rgba(0,0,0,0.4),0_0_0_1px_var(--input)]" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <LayoutGrid className="h-3.5 w-3.5" /> Grid
@@ -264,7 +270,7 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
                       <p className="text-lg font-medium text-primary group-hover:underline">{inv.client?.name || "No client"}</p>
                       <p className="text-xs text-muted-foreground">{getCategoryLabel(inv.category)}</p>
                     </div>
-                    <p className="text-xl font-semibold font-mono tracking-tighter">
+                    <p className="text-xl font-semibold font-mono tracking-tight">
                       {formatCurrency(Number(inv.total), inv.currency)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -358,7 +364,7 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
                             <DropdownMenuItem onClick={() => router.push(`/invoices/${inv.id}`)}>
                               <Eye className="mr-2 h-3.5 w-3.5" /> View
                             </DropdownMenuItem>
-                            {inv.status === "draft" && (
+                            {isInvoiceEditable(inv.status) && (
                               <DropdownMenuItem onClick={() => router.push(`/invoices/${inv.id}/edit`)}>
                                 <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
                               </DropdownMenuItem>
@@ -366,6 +372,11 @@ export function InvoicesTable({ invoices, settings }: { invoices: Invoices; sett
                             <DropdownMenuItem onClick={() => handleDownloadPdf(inv)}>
                               <Download className="mr-2 h-3.5 w-3.5" /> Download PDF
                             </DropdownMenuItem>
+                            {inv.status === "paid" && (
+                              <DropdownMenuItem onClick={() => handleDownloadPdf(inv, "receipt")}>
+                                <Receipt className="mr-2 h-3.5 w-3.5" /> Download Receipt
+                              </DropdownMenuItem>
+                            )}
                             {["sent", "overdue"].includes(inv.status) && (
                               <DropdownMenuItem onClick={() => setConfirmPaidId(inv.id)}>
                                 <CheckCircle className="mr-2 h-3.5 w-3.5" /> Mark as Paid

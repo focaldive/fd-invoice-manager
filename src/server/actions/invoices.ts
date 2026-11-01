@@ -14,6 +14,7 @@ import {
   nextDuplicateInvoiceNumber,
   nextInvoiceNumber,
 } from "@/server/invoice-numbering";
+import { isInvoiceEditable } from "@/lib/types";
 
 export async function generateNextInvoiceNumber(clientName: string, issueDate: string) {
   return nextInvoiceNumber(clientName, new Date(issueDate));
@@ -111,6 +112,16 @@ export async function updateInvoice(
   const parsedItems = z.array(InvoiceItemInput).parse(items);
 
   return db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ status: invoices.status })
+      .from(invoices)
+      .where(eq(invoices.id, id))
+      .limit(1);
+    if (!existing) throw new Error("Invoice not found");
+    if (!isInvoiceEditable(existing.status)) {
+      throw new Error(`A ${existing.status} invoice can no longer be edited`);
+    }
+
     const [row] = await tx
       .update(invoices)
       .set({ ...toDbInvoice(invoice), updatedAt: new Date() })

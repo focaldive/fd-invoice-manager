@@ -6,12 +6,14 @@ import {
   Settings,
   COMPANY,
   formatCurrency,
+  getPaidDate,
+  getReceiptNumber,
 } from "./types";
 
-// Pre-rendered FocalDive logo as base64 PNG (200x200)
-// Generated from public/logo.svg via sharp — flattened to white background for jsPDF compatibility
+// Pre-rendered FocalDive emblem on a dark tile, 200x200 PNG.
+// Regenerate with `node scripts/gen-logo-base64.js` (renders src/app/icon.svg).
 const LOGO_PNG_DATA_URL =
-  "data:image/png;base64,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";
+  "data:image/png;base64,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";
 
 // Get logo data URL — uses pre-rendered PNG (works in both browser and server)
 export function getLogoDataUrl(): Promise<string> {
@@ -20,11 +22,21 @@ export function getLogoDataUrl(): Promise<string> {
 
 export type PDFOutputMode = "download" | "base64" | "arraybuffer";
 
+/**
+ * "invoice" — the regular invoice (amount due).
+ * "receipt" — proof of payment for a paid invoice: retitled, shows the
+ *             paid date / amount paid, and carries a red PAID stamp.
+ */
+export type PDFVariant = "invoice" | "receipt";
+
 export async function generateInvoicePDF(
   invoice: Invoice & { items: InvoiceItem[]; client?: any },
   settings?: Settings | null,
   outputMode: PDFOutputMode = "download",
+  variant: PDFVariant = "invoice",
 ): Promise<string | ArrayBuffer | void> {
+  const isReceipt = variant === "receipt";
+  const paidDate = isReceipt ? getPaidDate(invoice) : null;
   const doc = new jsPDF("p", "mm", "a4");
   const pageWidth = doc.internal.pageSize.getWidth(); // 210
   const pageHeight = doc.internal.pageSize.getHeight(); // 297
@@ -66,7 +78,7 @@ export async function generateInvoicePDF(
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...black);
-  doc.text("Invoice", marginLeft, y + 6);
+  doc.text(isReceipt ? "Receipt" : "Invoice", marginLeft, y + 6);
 
   y += 22;
 
@@ -77,8 +89,15 @@ export async function generateInvoicePDF(
   const valueX = marginLeft + 36;
 
   doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
   doc.setTextColor(...black);
+  if (isReceipt) {
+    doc.setFont("helvetica", "bold");
+    doc.text("Receipt number", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(getReceiptNumber(invoice.invoiceNumber), valueX, y);
+    y += 5.5;
+  }
+  doc.setFont("helvetica", isReceipt ? "normal" : "bold");
   doc.text("Invoice number", labelX, y);
   doc.setFont("helvetica", "normal");
   doc.text(invoice.invoiceNumber, valueX, y);
@@ -95,6 +114,14 @@ export async function generateInvoicePDF(
   doc.text("Date due", labelX, y);
   doc.setTextColor(...black);
   doc.text(formatDate(invoice.dateDue), valueX, y);
+
+  if (isReceipt && paidDate) {
+    y += 5.5;
+    doc.setFont("helvetica", "bold");
+    doc.text("Date paid", labelX, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(formatDate(paidDate), valueX, y);
+  }
 
   y += 14;
 
@@ -173,7 +200,9 @@ export async function generateInvoicePDF(
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...black);
-  const amountDueText = `${fmt(Number(invoice.total))} ${invoice.currency} due ${formatDate(invoice.dateDue)}`;
+  const amountDueText = isReceipt && paidDate
+    ? `${fmt(Number(invoice.total))} ${invoice.currency} paid ${formatDate(paidDate)}`
+    : `${fmt(Number(invoice.total))} ${invoice.currency} due ${formatDate(invoice.dateDue)}`;
   doc.text(amountDueText, marginLeft, y);
 
   y += 16;
@@ -241,6 +270,11 @@ export async function generateInvoicePDF(
   const totalsRightX = pageWidth - marginRight;
   const rowHeight = 8;
   const textOffset = 3;
+
+  // PAID stamp — sits in the empty space left of the totals block.
+  if (isReceipt && paidDate) {
+    drawPaidStamp(doc, marginLeft + 40, y + 18, formatDate(paidDate));
+  }
 
   // Subtotal
   doc.setDrawColor(200, 200, 200);
@@ -312,10 +346,21 @@ export async function generateInvoicePDF(
   y += rowHeight;
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...black);
-  doc.text("Amount due", totalsLeftX, y - textOffset);
-  doc.text(`${fmt(Number(invoice.total))}`, totalsRightX, y - textOffset, {
-    align: "right",
-  });
+  if (isReceipt) {
+    doc.text("Amount paid", totalsLeftX, y - textOffset);
+    doc.text(`${fmt(Number(invoice.total))}`, totalsRightX, y - textOffset, {
+      align: "right",
+    });
+    y += rowHeight;
+    doc.setFont("helvetica", "normal");
+    doc.text("Balance due", totalsLeftX, y - textOffset);
+    doc.text(fmt(0), totalsRightX, y - textOffset, { align: "right" });
+  } else {
+    doc.text("Amount due", totalsLeftX, y - textOffset);
+    doc.text(`${fmt(Number(invoice.total))}`, totalsRightX, y - textOffset, {
+      align: "right",
+    });
+  }
 
   // ============================================
   // FOOTER - Notes
@@ -349,9 +394,76 @@ export async function generateInvoicePDF(
       return doc.output("arraybuffer");
     case "download":
     default:
-      doc.save(`${invoice.invoiceNumber}.pdf`);
+      doc.save(`${isReceipt ? getReceiptNumber(invoice.invoiceNumber) : invoice.invoiceNumber}.pdf`);
       return;
   }
+}
+
+/**
+ * Red rubber-stamp style "PAID" mark, tilted ~12° counter-clockwise.
+ * Drawn as vectors (double border + text) so it stays crisp at any zoom.
+ * (cx, cy) is the stamp centre in mm.
+ */
+function drawPaidStamp(doc: jsPDF, cx: number, cy: number, dateLabel: string) {
+  const red: [number, number, number] = [214, 38, 38];
+  const angleDeg = 12;
+  const rad = (angleDeg * Math.PI) / 180;
+  const cos = Math.cos(rad);
+  const sin = Math.sin(rad);
+
+  // Local (unrotated) coords → page coords. jsPDF's y axis points down, so a
+  // counter-clockwise visual rotation lifts points on the right side upward.
+  const toPage = (lx: number, ly: number): [number, number] => [
+    cx + lx * cos + ly * sin,
+    cy - lx * sin + ly * cos,
+  ];
+
+  const drawRotatedRect = (halfW: number, halfH: number) => {
+    const corners = [
+      toPage(-halfW, -halfH),
+      toPage(halfW, -halfH),
+      toPage(halfW, halfH),
+      toPage(-halfW, halfH),
+    ];
+    const deltas = corners.slice(1).map((c, i) => [c[0] - corners[i][0], c[1] - corners[i][1]]);
+    doc.lines(deltas, corners[0][0], corners[0][1], [1, 1], "S", true);
+  };
+
+  // Draws text centred on local point (lx, baseline ly), rotated with the stamp.
+  const drawRotatedText = (text: string, lx: number, ly: number) => {
+    const w = doc.getTextWidth(text);
+    const [x, y] = toPage(lx - w / 2, ly);
+    doc.text(text, x, y, { angle: angleDeg });
+  };
+
+  type GStateCtor = new (p: { opacity: number; "stroke-opacity": number }) => unknown;
+  const GState = (doc as unknown as { GState?: GStateCtor }).GState;
+  const setAlpha = (a: number) => {
+    if (GState) doc.setGState(new GState({ opacity: a, "stroke-opacity": a }));
+  };
+  setAlpha(0.85);
+
+  doc.setDrawColor(...red);
+  doc.setTextColor(...red);
+
+  doc.setLineWidth(1.1);
+  drawRotatedRect(30, 12);
+  doc.setLineWidth(0.35);
+  drawRotatedRect(28, 10);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(30);
+  drawRotatedText("PAID", 0, 1.2);
+
+  doc.setFontSize(7.5);
+  drawRotatedText(dateLabel.toUpperCase(), 0, 7);
+
+  setAlpha(1);
+
+  // Reset state for subsequent drawing.
+  doc.setTextColor(0, 0, 0);
+  doc.setDrawColor(0, 0, 0);
+  doc.setFont("helvetica", "normal");
 }
 
 function formatDate(dateStr: string): string {

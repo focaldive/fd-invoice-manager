@@ -5,8 +5,21 @@ import { and, desc, eq } from "drizzle-orm";
 
 export async function listInvoices() {
   return db.query.invoices.findMany({
-    with: { client: true },
+    // payments: needed so receipts can show the actual paid date
+    with: { client: true, payments: true },
     orderBy: (i, { desc }) => desc(i.createdAt),
+  });
+}
+
+/** Paid invoices — each one is a receipt. Payments included for paid date/method. */
+export async function listReceipts() {
+  return db.query.invoices.findMany({
+    where: (i, { eq }) => eq(i.status, "paid"),
+    with: {
+      client: true,
+      payments: { orderBy: (p, { desc }) => desc(p.paymentDate) },
+    },
+    orderBy: (i, { desc }) => desc(i.updatedAt),
   });
 }
 

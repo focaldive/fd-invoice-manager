@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useNavigationGuard } from "@/lib/navigation-guard";
-import { CATEGORIES, CURRENCIES } from "@/lib/types";
+import { CATEGORIES, CURRENCIES, type EditableInvoiceStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -327,7 +327,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
     return true;
   }
 
-  async function persistInvoice(status: "draft" | "sent"): Promise<string | null> {
+  async function persistInvoice(status: EditableInvoiceStatus): Promise<string | null> {
     const payload = {
       invoiceNumber,
       clientId,
@@ -392,7 +392,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
     }
   }
 
-  async function handleSave(status: "draft" | "sent") {
+  async function handleSave(status: EditableInvoiceStatus) {
     if (!validateForm()) return;
     setSaving(true);
     const savedId = await persistInvoice(status);
@@ -451,7 +451,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">{isEdit ? "Edit Invoice" : "New Invoice"}</h1>
+          <h1 className="text-2xl font-medium tracking-tight">{isEdit ? "Edit Invoice" : "New Invoice"}</h1>
           {invoiceNumber && <p className="text-sm font-mono text-muted-foreground mt-0.5">{invoiceNumber}</p>}
         </div>
       </div>
@@ -548,7 +548,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
           <div className="rounded-xl border border-border bg-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold">Line Items</h3>
-              <Button variant="outline" size="sm" onClick={addItem} className="h-8 text-xs rounded-full cursor-pointer">
+              <Button variant="outline" size="sm" onClick={addItem} className="h-8 text-xs cursor-pointer">
                 <Plus className="mr-1 h-3.5 w-3.5" /> Add Item
               </Button>
             </div>
@@ -734,14 +734,28 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
               </div>
             </div>
             <div className="space-y-2">
-              <Button className="w-full h-10 rounded-full" onClick={() => handleSave("sent")} disabled={saving}>
-                <Send className="mr-1.5 h-3.5 w-3.5" />
-                {isEdit ? "Update Invoice" : "Create Invoice"}
-              </Button>
-              <Button variant="outline" className="w-full h-10 rounded-full" onClick={() => handleSave("draft")} disabled={saving}>
-                <Save className="mr-1.5 h-3.5 w-3.5" />
-                {saving ? "Saving..." : "Save as Draft"}
-              </Button>
+              {isEdit && invoice && invoice.status !== "draft" ? (
+                // Already issued (sent/overdue): save changes but keep the current status.
+                <Button
+                  className="w-full h-10"
+                  onClick={() => handleSave(invoice.status as EditableInvoiceStatus)}
+                  disabled={saving}
+                >
+                  <Save className="mr-1.5 h-3.5 w-3.5" />
+                  {saving ? "Saving..." : "Save Changes"}
+                </Button>
+              ) : (
+                <>
+                  <Button className="w-full h-10" onClick={() => handleSave("sent")} disabled={saving}>
+                    <Send className="mr-1.5 h-3.5 w-3.5" />
+                    {isEdit ? "Update Invoice" : "Create Invoice"}
+                  </Button>
+                  <Button variant="outline" className="w-full h-10" onClick={() => handleSave("draft")} disabled={saving}>
+                    <Save className="mr-1.5 h-3.5 w-3.5" />
+                    {saving ? "Saving..." : "Save as Draft"}
+                  </Button>
+                </>
+              )}
             </div>
             {!isEdit && (
               <div className="rounded-xl border border-border bg-card p-6 space-y-4">
@@ -861,7 +875,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
               variant="outline"
               onClick={handleSaveAsDraftAndLeave}
               disabled={!clientId}
-              className="w-full rounded-full border border-primary text-primary hover:bg-primary/20"
+              className="w-full border border-primary text-primary hover:bg-primary/20"
             >
               <Save className="mr-1.5 h-3.5 w-3.5" /> Save as Draft
             </Button>
@@ -873,11 +887,11 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
             <Button
               variant="outline"
               onClick={handleDiscardAndLeave}
-              className="w-full rounded-full text-destructive hover:text-destructive"
+              className="w-full text-destructive hover:text-destructive"
             >
               Discard & Leave
             </Button>
-            <Button variant="ghost" onClick={() => setUnsavedDialog(false)} className="w-full rounded-full">
+            <Button variant="ghost" onClick={() => setUnsavedDialog(false)} className="w-full">
               Continue Editing
             </Button>
           </div>
