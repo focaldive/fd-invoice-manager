@@ -3,17 +3,14 @@ import { db } from "@/server/db/client";
 
 export async function listRecurringTemplates() {
   return db.query.recurringInvoices.findMany({
-    with: { client: true },
+    with: { client: true, items: { orderBy: (it, { asc }) => asc(it.sortOrder) } },
     orderBy: (r, { desc }) => desc(r.createdAt),
   });
 }
 
-export async function getRecurringTemplate(id: string) {
-  return db.query.recurringInvoices.findFirst({
-    where: (r, { eq }) => eq(r.id, id),
-    with: {
-      client: true,
-      items: { orderBy: (it, { asc }) => asc(it.sortOrder) },
-    },
+export async function listRecurringPayslipTemplates() {
+  return db.query.recurringPayslips.findMany({
+    with: { employee: true, items: { orderBy: (it, { asc }) => asc(it.sortOrder) } },
+    orderBy: (r, { desc }) => desc(r.createdAt),
   });
 }

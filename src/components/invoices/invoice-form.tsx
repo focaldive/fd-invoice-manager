@@ -3,7 +3,12 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useNavigationGuard } from "@/lib/navigation-guard";
-import { CATEGORIES, CURRENCIES, type EditableInvoiceStatus } from "@/lib/types";
+import {
+  CATEGORIES,
+  CURRENCIES,
+  computeNextGenerationDate,
+  type EditableInvoiceStatus,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +45,7 @@ import {
   updateInvoice,
   generateNextInvoiceNumber,
 } from "@/server/actions/invoices";
-import { createRecurringTemplate } from "@/server/actions/recurring";
+import { makeInvoiceRecurring } from "@/server/actions/recurring";
 import { createClient } from "@/server/actions/clients";
 import type { listClients } from "@/server/queries/clients";
 import type { getInvoiceFull } from "@/server/queries/invoices";
@@ -187,7 +192,11 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
   const [newClient, setNewClient] = useState({ name: "", email: "", phone: "", address: "", country: "" });
   const [unsavedDialog, setUnsavedDialog] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(1);
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(() =>
+    Math.min(28, Number((invoice?.dateOfIssue ?? toLocalDateString(new Date())).slice(8, 10))),
+  );
+  // Any invoice not already in a recurring series can be made recurring.
+  const canMakeRecurring = !invoice?.recurringInvoiceId;
   const pendingNavRef = useRef<string | null>(null);
   const savedRef = useRef(false);
 
@@ -365,28 +374,12 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
     }
   }
 
-  async function persistRecurring(linkToInvoiceId: string) {
+  async function persistRecurring(invoiceId: string) {
     try {
-      await createRecurringTemplate({
-        template: {
-          clientId,
-          currency,
-          taxPercentage,
-          discountPercentage: discountType === "percentage" ? discountPercentage : 0,
-          discountAmount: discountType === "fixed" ? discountFixedAmount : 0,
-          notes: notes || null,
-          category,
-          dayOfMonth: recurringDayOfMonth,
-        },
-        items: items.map((item, idx) => ({
-          description: item.description,
-          quantity: Number(item.quantity),
-          unitPrice: Number(item.unitPrice),
-          sortOrder: idx,
-        })),
-        linkToInvoiceId,
-      });
-      toast.success("Recurring template created");
+      // Built server-side from the invoice we just saved, so the template
+      // always matches it exactly (items, tax, discount, payment terms).
+      await makeInvoiceRecurring(invoiceId, recurringDayOfMonth);
+      toast.success("Recurring schedule created");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Invoice saved but failed to create recurring template");
     }
@@ -397,7 +390,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
     setSaving(true);
     const savedId = await persistInvoice(status);
     if (savedId) {
-      if (isRecurring && !isEdit) {
+      if (isRecurring && canMakeRecurring) {
         await persistRecurring(savedId);
       }
       toast.success(isEdit ? "Invoice updated" : "Invoice created");
@@ -757,7 +750,7 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
                 </>
               )}
             </div>
-            {!isEdit && (
+            {canMakeRecurring && (
               <div className="rounded-xl border border-border bg-card p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -786,7 +779,11 @@ export function InvoiceForm({ clients: initialClients, settings, invoice }: Prop
                         </SelectContent>
                       </Select>
                       <p className="text-[11px] text-muted-foreground mt-1">
-                        Invoice will be generated on this day each month (1-28)
+                        A draft copy of this invoice is generated on this day every month.
+                        First one:{" "}
+                        <span className="font-mono text-foreground">
+                          {computeNextGenerationDate(recurringDayOfMonth, dateOfIssue)}
+                        </span>
                       </p>
                     </div>
                   </div>

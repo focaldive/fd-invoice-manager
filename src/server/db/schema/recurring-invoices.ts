@@ -25,10 +25,13 @@ export const recurringInvoices = pgTable(
     discountAmount: numeric("discount_amount", { precision: 12, scale: 2 }).notNull().default("0"),
     notes: text("notes"),
     category: text("category").notNull().default("other"),
+    /** Days between issue date and due date on generated invoices. */
+    paymentTermsDays: integer("payment_terms_days").notNull().default(7),
     dayOfMonth: integer("day_of_month").notNull().default(1),
     isActive: boolean("is_active").notNull().default(true),
     generatedCount: integer("generated_count").notNull().default(0),
     nextGenerationDate: date("next_generation_date").notNull(),
+    lastGeneratedAt: timestamp("last_generated_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

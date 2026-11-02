@@ -10,6 +10,7 @@ import {
   PAYSLIP_ITEM_TYPES,
   CURRENCIES,
   computeNetPay,
+  computeNextGenerationDate,
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,13 +31,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { DatePicker } from "@/components/ui/date-picker";
-import { Plus, Trash2, ArrowLeft, Save, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Plus, Trash2, ArrowLeft, Save, AlertTriangle, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import {
   createPayslip,
   updatePayslip,
   generateNextSlipNumber,
 } from "@/server/actions/payslips";
+import { makePayslipRecurring } from "@/server/actions/recurring";
 import type { listEmployees } from "@/server/queries/employees";
 import type { getPayslipFull } from "@/server/queries/payslips";
 import type { getSettings } from "@/server/queries/settings";
@@ -112,6 +115,12 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
 
   const [saving, setSaving] = useState(false);
   const [unsavedDialog, setUnsavedDialog] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState(() =>
+    Math.min(28, Number((payslip?.paymentDate ?? toLocalDateString(now)).slice(8, 10))),
+  );
+  // Any payslip not already in a recurring series can be made recurring.
+  const canMakeRecurring = !payslip?.recurringPayslipId;
   const pendingNavRef = useRef<string | null>(null);
   const savedRef = useRef(false);
   // Track whether the user has manually touched the items so employee-select doesn't clobber them
@@ -277,6 +286,14 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
         savedId = created.id;
       }
       toast.success(isEdit ? "Payslip updated" : "Payslip created");
+      if (isRecurring && canMakeRecurring) {
+        try {
+          await makePayslipRecurring(savedId, recurringDayOfMonth);
+          toast.success("Recurring schedule created");
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : "Payslip saved but failed to create recurring schedule");
+        }
+      }
       savedRef.current = true;
       router.push(`/payslips/${savedId}`);
     } catch (err) {
@@ -535,6 +552,46 @@ export function PayslipForm({ employees, settings, payslip }: Props) {
               {saving ? "Saving..." : isEdit ? "Update Payslip" : "Create Payslip"}
             </Button>
           </div>
+          {canMakeRecurring && (
+            <div className="rounded-xl border border-border bg-card p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Recurring Payslip</h3>
+                </div>
+                <Switch checked={isRecurring} onCheckedChange={setIsRecurring} />
+              </div>
+              {isRecurring && (
+                <div className="space-y-4 pt-2 border-t border-border">
+                  <div>
+                    <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Payment Day</Label>
+                    <Select
+                      value={String(recurringDayOfMonth)}
+                      onValueChange={(v) => setRecurringDayOfMonth(Number(v))}
+                    >
+                      <SelectTrigger className="mt-1.5 font-mono">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
+                          <SelectItem key={d} value={String(d)}>
+                            {d}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      A draft copy of this payslip is generated on this day every month, keeping the same
+                      gap between pay period and payment date. First one:{" "}
+                      <span className="font-mono text-foreground">
+                        {paymentDate ? computeNextGenerationDate(recurringDayOfMonth, paymentDate) : "—"}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

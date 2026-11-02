@@ -8,6 +8,8 @@ import { recurringInvoiceItems } from "./schema/recurring-invoice-items";
 import { employees } from "./schema/employees";
 import { payslips } from "./schema/payslips";
 import { payslipItems } from "./schema/payslip-items";
+import { recurringPayslips } from "./schema/recurring-payslips";
+import { recurringPayslipItems } from "./schema/recurring-payslip-items";
 
 export const clientsRelations = relations(clients, ({ many }) => ({
   invoices: many(invoices),
@@ -59,6 +61,7 @@ export const recurringInvoiceItemsRelations = relations(recurringInvoiceItems, (
 
 export const employeesRelations = relations(employees, ({ many }) => ({
   payslips: many(payslips),
+  recurringPayslips: many(recurringPayslips),
 }));
 
 export const payslipsRelations = relations(payslips, ({ one, many }) => ({
@@ -66,7 +69,27 @@ export const payslipsRelations = relations(payslips, ({ one, many }) => ({
     fields: [payslips.employeeId],
     references: [employees.id],
   }),
+  recurringPayslip: one(recurringPayslips, {
+    fields: [payslips.recurringPayslipId],
+    references: [recurringPayslips.id],
+  }),
   items: many(payslipItems),
+}));
+
+export const recurringPayslipsRelations = relations(recurringPayslips, ({ one, many }) => ({
+  employee: one(employees, {
+    fields: [recurringPayslips.employeeId],
+    references: [employees.id],
+  }),
+  items: many(recurringPayslipItems),
+  generatedPayslips: many(payslips),
+}));
+
+export const recurringPayslipItemsRelations = relations(recurringPayslipItems, ({ one }) => ({
+  template: one(recurringPayslips, {
+    fields: [recurringPayslipItems.recurringPayslipId],
+    references: [recurringPayslips.id],
+  }),
 }));
 
 export const payslipItemsRelations = relations(payslipItems, ({ one }) => ({

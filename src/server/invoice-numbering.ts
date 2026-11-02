@@ -4,14 +4,21 @@ import { invoices } from "@/server/db/schema";
 import { desc, like } from "drizzle-orm";
 import { buildInvoiceNumber, getClientAbbreviation } from "@/lib/types";
 
-export async function nextInvoiceNumber(clientName: string, issueDate: Date) {
+/** `db` or a transaction handle — lets callers number inside their own tx. */
+export type QueryExecutor = Pick<typeof db, "select">;
+
+export async function nextInvoiceNumber(
+  clientName: string,
+  issueDate: Date,
+  exec: QueryExecutor = db,
+) {
   const abbr = getClientAbbreviation(clientName);
   const yy = String(issueDate.getFullYear()).slice(2);
   const mm = String(issueDate.getMonth() + 1).padStart(2, "0");
   const yearMonth = `${yy}${mm}`;
   const prefix = `FD-${abbr}-${yearMonth}-`;
 
-  const [last] = await db
+  const [last] = await exec
     .select({ n: invoices.invoiceNumber })
     .from(invoices)
     .where(like(invoices.invoiceNumber, `${prefix}%`))

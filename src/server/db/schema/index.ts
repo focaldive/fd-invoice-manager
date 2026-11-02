@@ -8,3 +8,5 @@ export * from "./recurring-invoice-items";
 export * from "./employees";
 export * from "./payslips";
 export * from "./payslip-items";
+export * from "./recurring-payslips";
+export * from "./recurring-payslip-items";

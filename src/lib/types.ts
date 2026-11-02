@@ -33,19 +33,63 @@ export type Payslip = InferSelectModel<typeof payslips> & {
 }
 export type PayslipItem = InferSelectModel<typeof payslipItems>
 
-export function computeNextGenerationDate(dayOfMonth: number): string {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const target = new Date(year, month, dayOfMonth)
-  // If the day has already passed this month, use next month
-  if (target <= now) {
-    target.setMonth(target.getMonth() + 1)
-  }
-  const y = target.getFullYear()
-  const m = String(target.getMonth() + 1).padStart(2, '0')
-  const d = String(target.getDate()).padStart(2, '0')
+// ── Recurring schedule helpers ─────────────────────────────
+// All recurring dates are plain calendar dates ("YYYY-MM-DD"), compared as
+// strings, so they never drift with timezones.
+
+/** Local calendar date of `date` as YYYY-MM-DD. */
+export function toDateString(date: Date): string {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
   return `${y}-${m}-${d}`
+}
+
+/** Parse YYYY-MM-DD as a local date (new Date("YYYY-MM-DD") would be UTC). */
+export function parseDateString(value: string): Date {
+  const [y, m, d] = value.slice(0, 10).split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+/** Add whole days to a YYYY-MM-DD date. */
+export function addDaysToDateString(value: string, days: number): string {
+  const date = parseDateString(value)
+  date.setDate(date.getDate() + days)
+  return toDateString(date)
+}
+
+/** Whole days from `from` to `to` (both YYYY-MM-DD). */
+export function daysBetweenDateStrings(from: string, to: string): number {
+  return Math.round(
+    (parseDateString(to).getTime() - parseDateString(from).getTime()) / 86400000,
+  )
+}
+
+/** `dayOfMonth` (1–28) in the month `monthsAhead` after `from`'s month. */
+export function dayInMonthAfter(from: string, dayOfMonth: number, monthsAhead = 1): string {
+  const base = parseDateString(from)
+  return toDateString(new Date(base.getFullYear(), base.getMonth() + monthsAhead, dayOfMonth))
+}
+
+/**
+ * First run date for a recurring template.
+ *
+ * With `sourceDate` (the issue / payment date of the document the template was
+ * made from) the source already covers its own month, so the first generated
+ * copy lands on `dayOfMonth` in the following month.
+ * Without it, it's the next upcoming `dayOfMonth` (today counts as passed).
+ */
+export function computeNextGenerationDate(dayOfMonth: number, sourceDate?: string): string {
+  if (sourceDate) return dayInMonthAfter(sourceDate, dayOfMonth)
+  const today = toDateString(new Date())
+  const thisMonth = dayInMonthAfter(today, dayOfMonth, 0)
+  return thisMonth > today ? thisMonth : dayInMonthAfter(today, dayOfMonth, 1)
+}
+
+/** Month/year that is `offset` months before `date`'s month. */
+export function shiftMonth(month: number, year: number, offset: number): { month: number; year: number } {
+  const d = new Date(year, month - 1 - offset, 1)
+  return { month: d.getMonth() + 1, year: d.getFullYear() }
 }
 
 export const CATEGORIES = [

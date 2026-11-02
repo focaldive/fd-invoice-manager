@@ -7,6 +7,7 @@ import {
   buildSlipNumber,
   getDepartmentAbbreviation,
 } from "@/lib/types";
+import type { QueryExecutor } from "@/server/invoice-numbering";
 
 /**
  * Next employee number for a department: FD-{DEPT}-{YY}-{SEQ}.
@@ -38,14 +39,14 @@ export async function nextEmployeeNumber(department: string, joinedDate: Date) {
  * Next slip number for a payment date: FD-{DDMMYY}-{SEQ}.
  * Sequence increments across all payslips paid on the same date.
  */
-export async function nextSlipNumber(paymentDate: Date) {
+export async function nextSlipNumber(paymentDate: Date, exec: QueryExecutor = db) {
   const dd = String(paymentDate.getDate()).padStart(2, "0");
   const mm = String(paymentDate.getMonth() + 1).padStart(2, "0");
   const yy = String(paymentDate.getFullYear()).slice(2);
   const ddmmyy = `${dd}${mm}${yy}`;
   const prefix = `FD-${ddmmyy}-`;
 
-  const [last] = await db
+  const [last] = await exec
     .select({ n: payslips.slipNumber })
     .from(payslips)
     .where(like(payslips.slipNumber, `${prefix}%`))
