@@ -63,3 +63,13 @@ export async function getDashboardInvoices(currency: string, category?: string) 
     orderBy: (i, { desc }) => desc(i.createdAt),
   });
 }
+
+/** Public share-link lookup. Returns null for unknown/revoked tokens. */
+export async function getInvoiceByShareToken(token: string) {
+  if (!/^[A-Za-z0-9_-]{20,64}$/.test(token)) return null;
+  const invoice = await db.query.invoices.findFirst({
+    where: (i, { eq }) => eq(i.shareToken, token),
+    columns: { id: true },
+  });
+  return invoice ? getInvoiceFull(invoice.id) : null;
+}

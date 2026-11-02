@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { generateInvoicePDF, type PDFVariant } from "@/lib/pdf";
+import { ShareLinkMenu } from "@/components/invoices/share-link-menu";
 import { cn } from "@/lib/utils";
 import {
   PAYMENT_METHODS,
@@ -237,6 +238,11 @@ export function InvoiceDetail({
                 <Receipt className="mr-1.5 h-3.5 w-3.5" /> Receipt
               </Button>
             )}
+            <ShareLinkMenu
+              invoiceId={invoice.id}
+              isPaid={invoice.status === "paid"}
+              isShared={!!invoice.shareToken}
+            />
             {isInvoiceEditable(invoice.status) && (
               <Link href={`/invoices/${invoice.id}/edit`}>
                 <Button variant="outline" size="sm" className="h-9">

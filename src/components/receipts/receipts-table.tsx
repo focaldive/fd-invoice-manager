@@ -22,6 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { generateInvoicePDF } from "@/lib/pdf";
+import { ShareLinkMenu } from "@/components/invoices/share-link-menu";
 import {
   PAYMENT_METHODS,
   formatCurrency,
@@ -223,6 +224,13 @@ export function ReceiptsTable({ receipts, settings }: { receipts: Receipts; sett
                             <Eye className="h-3.5 w-3.5" />
                           </Button>
                         </Link>
+                        <ShareLinkMenu
+                          invoiceId={r.id}
+                          isPaid
+                          isShared={!!r.shareToken}
+                          size="icon"
+                          receiptOnly
+                        />
                         <Button
                           variant="outline"
                           size="sm"

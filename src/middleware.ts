@@ -3,11 +3,14 @@ import { jwtVerify } from "jose";
 
 const COOKIE = process.env.SESSION_COOKIE_NAME ?? "fd_session";
 const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/logout"];
+// Public share links for invoices/receipts — access is gated by the token itself.
+const PUBLIC_PREFIXES = ["/share/"];
 
 export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   if (PUBLIC_PATHS.includes(path)) return NextResponse.next();
+  if (PUBLIC_PREFIXES.some((p) => path.startsWith(p))) return NextResponse.next();
 
   const token = req.cookies.get(COOKIE)?.value;
   if (!token) return redirectToLogin(req);
