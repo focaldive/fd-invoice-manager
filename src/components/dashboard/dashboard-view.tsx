@@ -88,9 +88,6 @@ export function DashboardView({
     })
     .reduce((sum, i) => sum + Number(i.total), 0);
 
-  const revenueSubText =
-    revenueMonth > 0 ? `${MONTHS[revenueMonth - 1]} ${revenueYear}` : `${revenueYear} — All months`;
-
   const monthlyRevenue = MONTHS.map((m, idx) => {
     const amount = invoices
       .filter(
@@ -183,7 +180,6 @@ export function DashboardView({
               </SelectContent>
             </Select>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{revenueSubText}</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-5">
