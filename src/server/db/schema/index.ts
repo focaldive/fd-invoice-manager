@@ -10,3 +10,4 @@ export * from "./payslips";
 export * from "./payslip-items";
 export * from "./recurring-payslips";
 export * from "./recurring-payslip-items";
+export * from "./ledger";

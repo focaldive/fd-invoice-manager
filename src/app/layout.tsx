@@ -20,8 +20,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FocalDive Invoice Manager",
-  description: "Invoice management system for FocalDive (Pvt) Ltd",
+  title: "FD - Manager",
+  description: "Invoices, payroll and accounts for FocalDive (Pvt) Ltd",
 };
 
 // Every route is auth-gated and reads live DB data — render dynamically so the
