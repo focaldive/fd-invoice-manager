@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-FocalDive Invoice Manager — an internal invoice management system for FocalDive (Pvt) Ltd, a Sri Lanka-based company. Built with Next.js 15 (App Router), self-hosted Postgres + Drizzle ORM, and shadcn/ui.
+FD - Manager (formerly FocalDive Invoice Manager) — an internal invoice, payroll and accounts system for FocalDive (Pvt) Ltd, a Sri Lanka-based company. Built with Next.js 15 (App Router), self-hosted Postgres + Drizzle ORM, and shadcn/ui.
 
 ## Commands
 
@@ -25,6 +25,8 @@ Server-only (never exposed to the client):
 - `SESSION_SECRET` — HS256 signing key for the session JWT
 - `SESSION_COOKIE_NAME` — defaults to `fd_session`
 - `AUTH_USERNAME` / `AUTH_PASSWORD` — single-user credentials checked by `/api/auth/login`
+- `LEDGER_SHEET_ID` (+ optional `LEDGER_SHEET_TAB`, `LEDGER_SYNC_INTERVAL_MINUTES`, default 10) — the FD-Accounts Google Sheet
+- `GOOGLE_SERVICE_ACCOUNT_KEY_FILE`, or `GOOGLE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` — service account with Viewer access to that sheet
 
 There are no `NEXT_PUBLIC_*` vars — nothing should ship to the client bundle.
 
@@ -99,6 +101,9 @@ Relationships: invoices reference clients via `client_id`; `invoice_items` and `
 Switching on "Recurring" in the invoice or payslip form (create or edit, if not already in a series) calls `makeInvoiceRecurring` / `makePayslipRecurring` (`src/server/actions/recurring.ts`), which build a template (`recurring_invoices` / `recurring_payslips` + items) server-side from the saved document and link it via `recurring_invoice_id` / `recurring_payslip_id`. Templates store `day_of_month` (1–28) and `next_generation_date`; the first run is that day in the month **after** the source document. Invoice templates keep the source's payment terms (`payment_terms_days`); payslip templates keep the pay-period → payment-date gap (`period_offset_months`).
 
 Generation lives in `src/server/recurring/generate.ts` (`runDueRecurring`): one transaction per template with `SELECT … FOR UPDATE`, creates **draft** documents flagged `is_auto_generated = true`, catches up missed months (max 12 per run), skips inactive employees, and is idempotent. It runs hourly via `src/instrumentation.ts` → `server/recurring/scheduler.ts` (in-process, Node runtime only; set `RECURRING_SCHEDULER=off` to disable) and on demand from the "Run due now" button on `/recurring`. Resuming a paused template restarts from the next upcoming run day (no back-fill).
+
+### Accounts Sheet Sync (Finance → /accounts)
+The cofounders keep income/expenditure in the FD-Accounts Google Sheet; the app mirrors it read-only. `src/server/ledger/google.ts` reads it with a service account (jose-signed RS256 JWT → access token → Sheets API, `UNFORMATTED_VALUE`), `parse.ts` finds the Income/Expenditure blocks by their header row (two `Number` cells; columns matched by name, an optional `Category` column overrides), `categorize.ts` derives categories by keyword, and `sync.ts` replaces `ledger_entries` wholesale in one transaction (advisory-locked; a failed/empty parse keeps old data and records `ledger_sync_state.last_error`). Runs every `LEDGER_SYNC_INTERVAL_MINUTES` via `instrumentation.ts` (`LEDGER_SYNC=off` disables) and from the "Sync now" button. Cash balance = Σincome − Σexpense over all rows (matches the sheet's "Current Balance"); income/expense/net figures exclude the `capital` (credits/investments) and `opening` (last year closing) categories.
 
 ### Styling
 Dark-only, AlignUI-styled: AlignUI's dark neutral palette, 10px control radius, focus halos and FancyButton sheen (`fancy-sheen` utility) are ported onto the shadcn components in `src/components/ui/` (APIs unchanged). Fonts: **SF Pro Rounded** via `@font-face` in `globals.css` — the Apple-licensed OTFs are **local only** (gitignored `public/fonts/sf-pro-rounded/`, never commit: repo is public); **Manrope** (`--font-manrope`, on `<html>`) is the fallback when they're absent and **JetBrains Mono** (`--font-jetbrains-mono`). Primary accent: Acid Green `#9bf019` (Toxic Green `#4bd200` as secondary chart colour; logo keeps its own green). Theme tokens live in `src/app/globals.css`.

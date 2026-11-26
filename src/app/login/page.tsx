@@ -46,9 +46,9 @@ export default function LoginPage() {
             <div className="flex flex-row items-start mb-8 gap-4">
               <FocalDiveLogo size={48} />
               <div>
-                <h1 className="text-xl font-semibold tracking-tight">FocalDive</h1>
+                <h1 className="text-xl font-semibold tracking-tight">FD - Manager</h1>
                 <p className="text-sm text-muted-foreground font-mono tracking-wider uppercase mt-">
-                  Invoice Manager
+                  FocalDive (Pvt) Ltd
                 </p>
               </div>
             </div>

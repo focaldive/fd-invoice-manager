@@ -13,9 +13,16 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     if (process.env.NEXT_PHASE === "phase-production-build") return;
-    if (process.env.RECURRING_SCHEDULER === "off") return;
 
-    const { startRecurringScheduler } = await import("@/server/recurring/scheduler");
-    startRecurringScheduler();
+    if (process.env.RECURRING_SCHEDULER !== "off") {
+      const { startRecurringScheduler } = await import("@/server/recurring/scheduler");
+      startRecurringScheduler();
+    }
+
+    // Accounts sheet → ledger_entries pull (no-op unless LEDGER_SHEET_ID + credentials are set).
+    if (process.env.LEDGER_SYNC !== "off") {
+      const { startLedgerScheduler } = await import("@/server/ledger/scheduler");
+      startLedgerScheduler();
+    }
   }
 }

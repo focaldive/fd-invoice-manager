@@ -15,6 +15,7 @@ import {
   LogOut,
   Plus,
   ChevronDown,
+  Wallet,
 } from "lucide-react"
 import { FocalDiveLogo } from "@/components/logo"
 import { useNavigationGuard } from "@/lib/navigation-guard"
@@ -74,6 +75,10 @@ const SECTIONS: NavSection[] = [
       { href: "/payslips", label: "Payslips", icon: ReceiptText },
       { href: "/employees", label: "Employees", icon: Users },
     ],
+  },
+  {
+    title: "Finance",
+    items: [{ href: "/accounts", label: "Accounts", icon: Wallet }],
   },
 ]
 
@@ -139,7 +144,7 @@ export function AppShellClient({
               <FocalDiveLogo size={20} />
             </span>
             <span className="truncate text-[15px] font-medium tracking-[-0.01em] text-foreground group-data-[collapsible=icon]:hidden">
-              FocalDive
+              FD - Manager
             </span>
           </Link>
         </SidebarHeader>
@@ -217,7 +222,7 @@ export function AppShellClient({
                     <span className="text-faint hidden sm:inline">/</span>
                   </>
                 )}
-                <span className="truncate font-medium">{activeItem?.label ?? "FocalDive"}</span>
+                <span className="truncate font-medium">{activeItem?.label ?? "FD - Manager"}</span>
               </div>
               {section?.title === "Billing" && counts.unpaid > 0 && (
                 <span className="bg-muted hidden shrink-0 items-center gap-1 rounded-full border border-[#363636] py-[3px] pr-2 pl-[5px] text-[11px] text-chip sm:inline-flex">
@@ -257,7 +262,7 @@ export function AppShellClient({
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-[1400px] p-6">{children}</div>
+          <div className="mx-auto w-full max-w-[1400px] p-4 sm:p-6">{children}</div>
         </div>
       </SidebarInset>
     </SidebarProvider>
